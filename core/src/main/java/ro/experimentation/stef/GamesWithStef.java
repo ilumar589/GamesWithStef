@@ -73,6 +73,8 @@ public class GamesWithStef implements ApplicationListener {
     
     // enemy AI movement
     final float ENEMY_SPEED = 125f;
+    final float MIN_TIMER_DURATION = 1f;
+    final float MAX_TIMER_DURATION = 3f;
     Vector2 character2Velocity;
     Vector2 character3Velocity;
     Vector2 character4Velocity;
@@ -163,14 +165,14 @@ public class GamesWithStef implements ApplicationListener {
         setRandomDirection(character2Velocity);
         setRandomDirection(character3Velocity);
         setRandomDirection(character4Velocity);
-        character2MoveTimer = MathUtils.random(1f, 3f);
-        character3MoveTimer = MathUtils.random(1f, 3f);
-        character4MoveTimer = MathUtils.random(1f, 3f);
+        character2MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character3MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character4MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
         
         // initialize enemy shooting timers
-        character2ShootTimer = MathUtils.random(1f, 3f);
-        character3ShootTimer = MathUtils.random(1f, 3f);
-        character4ShootTimer = MathUtils.random(1f, 3f);
+        character2ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
 
         // init
         dragonBallMusic.setLooping(true);
@@ -313,7 +315,7 @@ public class GamesWithStef implements ApplicationListener {
             character2MoveTimer -= delta;
             if (character2MoveTimer <= 0) {
                 setRandomDirection(character2Velocity);
-                character2MoveTimer = MathUtils.random(1f, 3f);
+                character2MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
             }
         }
         
@@ -322,7 +324,7 @@ public class GamesWithStef implements ApplicationListener {
             character3MoveTimer -= delta;
             if (character3MoveTimer <= 0) {
                 setRandomDirection(character3Velocity);
-                character3MoveTimer = MathUtils.random(1f, 3f);
+                character3MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
             }
         }
         
@@ -331,7 +333,7 @@ public class GamesWithStef implements ApplicationListener {
             character4MoveTimer -= delta;
             if (character4MoveTimer <= 0) {
                 setRandomDirection(character4Velocity);
-                character4MoveTimer = MathUtils.random(1f, 3f);
+                character4MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
             }
         }
         
@@ -341,7 +343,7 @@ public class GamesWithStef implements ApplicationListener {
                 character2ShootTimer -= delta;
                 if (character2ShootTimer <= 0) {
                     shootEnemyLaser(characterSprite2);
-                    character2ShootTimer = MathUtils.random(1f, 3f);
+                    character2ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
             
@@ -349,7 +351,7 @@ public class GamesWithStef implements ApplicationListener {
                 character3ShootTimer -= delta;
                 if (character3ShootTimer <= 0) {
                     shootEnemyLaser(characterSprite3);
-                    character3ShootTimer = MathUtils.random(1f, 3f);
+                    character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
             
@@ -357,7 +359,7 @@ public class GamesWithStef implements ApplicationListener {
                 character4ShootTimer -= delta;
                 if (character4ShootTimer <= 0) {
                     shootEnemyLaser(characterSprite4);
-                    character4ShootTimer = MathUtils.random(1f, 3f);
+                    character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
         }
@@ -494,23 +496,16 @@ public class GamesWithStef implements ApplicationListener {
         float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
         
-        // Calculate direction from enemy to Broly
-        float dx = brolyX - eyeX;
-        float dy = brolyY - eyeY;
-        
-        // Normalize the direction vector
-        float length = (float) Math.sqrt(dx * dx + dy * dy);
-        if (length > 0) {
-            dx /= length;
-            dy /= length;
-        }
+        // Calculate direction from enemy to Broly using Vector2
+        Vector2 direction = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        direction.nor(); // Normalize the vector
         
         // Create laser sprite
         Sprite laser = new Sprite(blueLaserTexture);
         laser.setPosition(eyeX, eyeY);
         
         // Create velocity vector
-        Vector2 velocity = new Vector2(dx * LASER_SPEED, dy * LASER_SPEED);
+        Vector2 velocity = new Vector2(direction).scl(LASER_SPEED);
         
         // Add laser to the list
         enemyLasers.add(new LaserData(laser, velocity));
