@@ -290,8 +290,10 @@ public class GamesWithStef implements ApplicationListener {
         shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
         
         // Draw foreground (green) for current health
-        float healthPercentage = currentHealth / MAX_HEALTH;
-        shapeRenderer.setColor(Color.GREEN);
-        shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH * healthPercentage, HEALTH_BAR_HEIGHT);
+        if (MAX_HEALTH > 0) {
+            float healthPercentage = currentHealth / MAX_HEALTH;
+            shapeRenderer.setColor(Color.GREEN);
+            shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH * healthPercentage, HEALTH_BAR_HEIGHT);
+        }
     }
 }
