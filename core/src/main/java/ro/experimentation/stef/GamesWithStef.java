@@ -159,11 +159,6 @@ public class GamesWithStef implements ApplicationListener {
             this.velocity = new Vector2();
         }
 
-        LaserData(Sprite sprite, Vector2 velocity) {
-            this.sprite = sprite;
-            this.velocity = velocity;
-        }
-
         // Reset method for object pooling
         void reset() {
             this.sprite = null;
@@ -665,7 +660,7 @@ public class GamesWithStef implements ApplicationListener {
             if (laserData.sprite.getX() > width || laserData.sprite.getX() < -100 ||
                 laserData.sprite.getY() > height || laserData.sprite.getY() < -100) {
                 playerSpecialIterator.remove();
-                // Free the LaserData object back to the pool (which also resets its velocity)
+                // Free the LaserData object back to the pool
                 laserDataPool.free(laserData);
                 continue;
             }
@@ -746,6 +741,7 @@ public class GamesWithStef implements ApplicationListener {
                     enemyIterator.remove();
                     // Free the LaserData object back to the pool
                     laserDataPool.free(laserData);
+                    continue;
                 }
             }
         }
