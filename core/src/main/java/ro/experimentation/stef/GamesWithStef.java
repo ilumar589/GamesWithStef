@@ -105,6 +105,8 @@ public class GamesWithStef implements ApplicationListener {
     final float CHARACTER_SCALE = 0.4f;
     final int HIGHLIGHT_THICKNESS = 5;
     final float HIGHLIGHT_PADDING = 10f;
+    final float CHARACTER_Y_OFFSET = 100f;
+    final float CHARACTER_NAME_OFFSET = 30f;
 
     float character1Health;
     float character2Health;
@@ -370,14 +372,13 @@ public class GamesWithStef implements ApplicationListener {
         spriteBatch.draw(backgroundTexture, 0, 0, width, height);
 
         // Draw title text
-        drawTextCentered("SELECT YOUR FIGHTER", height - 100, 3f);
+        drawTextCentered("SELECT YOUR FIGHTER", height - CHARACTER_Y_OFFSET, 3f);
 
         // Draw instruction text
-        drawTextCentered("Use LEFT/RIGHT arrows - Press ENTER to confirm", 100, 2f);
+        drawTextCentered("Use LEFT/RIGHT arrows - Press ENTER to confirm", CHARACTER_Y_OFFSET, 2f);
 
         // Calculate layout for characters (horizontal layout)
-        float spacing = width / (characters.length + 1);
-        float characterY = height / 2 - 100;
+        float characterY = height / 2 - CHARACTER_Y_OFFSET;
 
         for (int i = 0; i < characters.length; i++) {
             CharacterInfo character = characters[i];
@@ -392,7 +393,7 @@ public class GamesWithStef implements ApplicationListener {
             font.getData().setScale(2f);
             glyphLayout.setText(font, character.name);
             float nameX = characterX + (character.texture.getWidth() * CHARACTER_SCALE / 2) - (glyphLayout.width / 2);
-            float nameY = characterY - 30;
+            float nameY = characterY - CHARACTER_NAME_OFFSET;
             font.draw(spriteBatch, character.name, nameX, nameY);
             font.getData().setScale(3f);
         }
