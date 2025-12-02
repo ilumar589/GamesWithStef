@@ -499,15 +499,13 @@ public class GamesWithStef implements ApplicationListener {
         // Calculate direction from enemy to Broly using Vector2
         Vector2 direction = new Vector2(brolyX - eyeX, brolyY - eyeY);
         direction.nor(); // Normalize the vector
+        direction.scl(LASER_SPEED); // Scale to laser speed
         
         // Create laser sprite
         Sprite laser = new Sprite(blueLaserTexture);
         laser.setPosition(eyeX, eyeY);
         
-        // Create velocity vector
-        Vector2 velocity = new Vector2(direction).scl(LASER_SPEED);
-        
-        // Add laser to the list
-        enemyLasers.add(new LaserData(laser, velocity));
+        // Add laser to the list with velocity
+        enemyLasers.add(new LaserData(laser, direction));
     }
 }
