@@ -255,6 +255,12 @@ public class GamesWithStef implements ApplicationListener {
         
         // Initialize PoolManager for Vector2 pooling
         poolManager = new PoolManager();
+        poolManager.addPool(Vector2.class, new Pool<Vector2>() {
+            @Override
+            protected Vector2 newObject() {
+                return new Vector2();
+            }
+        });
 
         // Initialize cached Rectangle objects for collision detection
         tempLaserRect = new Rectangle();
