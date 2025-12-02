@@ -48,11 +48,21 @@ public class GamesWithStef implements ApplicationListener {
     Texture blueLaserTexture;
     Texture yellowLaserTexture;  // for AOE attacks
     Texture cyanBeamTexture;     // for large beam attacks
+    Texture greenLaserTexture;   // for player special ability A
+    Texture magentaLaserTexture; // for player special ability S
+    Texture orangeLaserTexture;  // for player special ability D
     ArrayList<Sprite> lasers;
     ArrayList<LaserData> enemyLasers;
+    ArrayList<LaserData> playerSpecialLasers;  // for player special abilities that need velocity
     float laserCooldown = 0f;
     final float LASER_COOLDOWN_TIME = 0.3f;
     final float LASER_SPEED = 700f;
+    
+    // player special abilities cooldowns
+    float abilityACooldown = 0f;
+    float abilitySCooldown = 0f;
+    float abilityDCooldown = 0f;
+    final float ABILITY_COOLDOWN_TIME = 2.0f;
 
     // control classes
     SpriteBatch spriteBatch;
@@ -162,8 +172,30 @@ public class GamesWithStef implements ApplicationListener {
         cyanBeamTexture = new Texture(cyanBeamPixmap);
         cyanBeamPixmap.dispose();
 
+        // create green laser texture for player ability A (rapid fire)
+        Pixmap greenLaserPixmap = new Pixmap(50, 8, Pixmap.Format.RGBA8888);
+        greenLaserPixmap.setColor(Color.GREEN);
+        greenLaserPixmap.fill();
+        greenLaserTexture = new Texture(greenLaserPixmap);
+        greenLaserPixmap.dispose();
+
+        // create magenta laser texture for player ability S (circular burst)
+        Pixmap magentaLaserPixmap = new Pixmap(35, 7, Pixmap.Format.RGBA8888);
+        magentaLaserPixmap.setColor(Color.MAGENTA);
+        magentaLaserPixmap.fill();
+        magentaLaserTexture = new Texture(magentaLaserPixmap);
+        magentaLaserPixmap.dispose();
+
+        // create orange beam texture for player ability D (mega beam)
+        Pixmap orangeBeamPixmap = new Pixmap(200, 40, Pixmap.Format.RGBA8888);
+        orangeBeamPixmap.setColor(Color.ORANGE);
+        orangeBeamPixmap.fill();
+        orangeLaserTexture = new Texture(orangeBeamPixmap);
+        orangeBeamPixmap.dispose();
+
         lasers = new ArrayList<>();
         enemyLasers = new ArrayList<>();
+        playerSpecialLasers = new ArrayList<>();
 
         // end assets initialization
 
@@ -258,6 +290,15 @@ public class GamesWithStef implements ApplicationListener {
         if (cyanBeamTexture != null) {
             cyanBeamTexture.dispose();
         }
+        if (greenLaserTexture != null) {
+            greenLaserTexture.dispose();
+        }
+        if (magentaLaserTexture != null) {
+            magentaLaserTexture.dispose();
+        }
+        if (orangeLaserTexture != null) {
+            orangeLaserTexture.dispose();
+        }
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
         }
@@ -293,6 +334,29 @@ public class GamesWithStef implements ApplicationListener {
         if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && laserCooldown <= 0) {
             shootLaser();
             laserCooldown = LASER_COOLDOWN_TIME;
+        }
+        
+        // special abilities cooldowns
+        abilityACooldown -= delta;
+        abilitySCooldown -= delta;
+        abilityDCooldown -= delta;
+        
+        // Ability A: Rapid Fire - shoots 3 fast green lasers in quick succession
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A) && abilityACooldown <= 0) {
+            shootRapidFire();
+            abilityACooldown = ABILITY_COOLDOWN_TIME;
+        }
+        
+        // Ability S: Circular Burst - shoots 12 magenta lasers in all directions
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S) && abilitySCooldown <= 0) {
+            shootCircularBurst();
+            abilitySCooldown = ABILITY_COOLDOWN_TIME;
+        }
+        
+        // Ability D: Mega Beam - shoots a massive orange beam
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D) && abilityDCooldown <= 0) {
+            shootMegaBeam();
+            abilityDCooldown = ABILITY_COOLDOWN_TIME;
         }
     }
 
@@ -341,6 +405,53 @@ public class GamesWithStef implements ApplicationListener {
                     character4Alive = false;
                 }
                 iterator.remove();
+                continue;
+            }
+        }
+
+        // update player special laser positions and check collisions with enemies
+        Iterator<LaserData> playerSpecialIterator = playerSpecialLasers.iterator();
+        while (playerSpecialIterator.hasNext()) {
+            LaserData laserData = playerSpecialIterator.next();
+            laserData.sprite.translate(laserData.velocity.x * delta, laserData.velocity.y * delta);
+
+            // remove lasers that are off-screen
+            if (laserData.sprite.getX() > width || laserData.sprite.getX() < -100 ||
+                laserData.sprite.getY() > height || laserData.sprite.getY() < -100) {
+                playerSpecialIterator.remove();
+                continue;
+            }
+
+            // collision detection with enemy characters
+            Rectangle laserRect = laserData.sprite.getBoundingRectangle();
+
+            // check collision with character 2
+            if (character2Alive && laserRect.overlaps(characterSprite2.getBoundingRectangle())) {
+                character2Health -= DAMAGE_PER_HIT;
+                if (character2Health <= 0) {
+                    character2Alive = false;
+                }
+                playerSpecialIterator.remove();
+                continue;
+            }
+
+            // check collision with character 3
+            if (character3Alive && laserRect.overlaps(characterSprite3.getBoundingRectangle())) {
+                character3Health -= DAMAGE_PER_HIT;
+                if (character3Health <= 0) {
+                    character3Alive = false;
+                }
+                playerSpecialIterator.remove();
+                continue;
+            }
+
+            // check collision with character 4
+            if (character4Alive && laserRect.overlaps(characterSprite4.getBoundingRectangle())) {
+                character4Health -= DAMAGE_PER_HIT;
+                if (character4Health <= 0) {
+                    character4Alive = false;
+                }
+                playerSpecialIterator.remove();
                 continue;
             }
         }
@@ -451,6 +562,11 @@ public class GamesWithStef implements ApplicationListener {
         // draw player lasers
         for (Sprite laser : lasers) {
             laser.draw(spriteBatch);
+        }
+
+        // draw player special lasers
+        for (LaserData laserData : playerSpecialLasers) {
+            laserData.sprite.draw(spriteBatch);
         }
 
         // draw enemy lasers
@@ -631,5 +747,51 @@ public class GamesWithStef implements ApplicationListener {
 
         // Add beam to the list with velocity
         enemyLasers.add(new LaserData(beam, direction));
+    }
+
+    // Player Special Ability A: Rapid Fire - shoots 3 green lasers in a tight spread
+    private void shootRapidFire() {
+        float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
+        float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
+        
+        // Shoot 3 lasers with slight vertical spread
+        for (int i = -1; i <= 1; i++) {
+            Sprite laser = new Sprite(greenLaserTexture);
+            laser.setPosition(eyeX, eyeY + (i * 15)); // Vertical offset
+            lasers.add(laser);
+        }
+    }
+
+    // Player Special Ability S: Circular Burst - shoots 12 magenta lasers in all directions
+    private void shootCircularBurst() {
+        float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
+        float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
+        
+        int numProjectiles = 12;
+        float angleStep = 360f / numProjectiles;
+        
+        for (int i = 0; i < numProjectiles; i++) {
+            float angle = i * angleStep;
+            Vector2 direction = new Vector2();
+            direction.x = MathUtils.cosDeg(angle);
+            direction.y = MathUtils.sinDeg(angle);
+            direction.scl(LASER_SPEED);
+            
+            Sprite laser = new Sprite(magentaLaserTexture);
+            laser.setPosition(eyeX, eyeY);
+            
+            // Add to player special lasers list with velocity
+            playerSpecialLasers.add(new LaserData(laser, direction));
+        }
+    }
+
+    // Player Special Ability D: Mega Beam - shoots a massive orange beam
+    private void shootMegaBeam() {
+        float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
+        float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
+        
+        Sprite megaBeam = new Sprite(orangeLaserTexture);
+        megaBeam.setPosition(eyeX, eyeY);
+        lasers.add(megaBeam);
     }
 }
