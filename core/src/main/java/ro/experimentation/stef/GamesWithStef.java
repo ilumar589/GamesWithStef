@@ -80,7 +80,7 @@ public class GamesWithStef implements ApplicationListener {
         laserPixmap.fill();
         laserTexture = new Texture(laserPixmap);
         laserPixmap.dispose();
-        
+
         lasers = new ArrayList<>();
 
         // end assets initialization
@@ -89,6 +89,7 @@ public class GamesWithStef implements ApplicationListener {
         viewport = new FillViewport(width, height);
 
         // init
+        dragonBallMusic.setLooping(true);
         dragonBallMusic.play();
     }
 
@@ -146,13 +147,13 @@ public class GamesWithStef implements ApplicationListener {
 
     private void logic() {
         float delta = Gdx.graphics.getDeltaTime();
-        
+
         // update laser positions
         Iterator<Sprite> iterator = lasers.iterator();
         while (iterator.hasNext()) {
             Sprite laser = iterator.next();
             laser.translateX(LASER_SPEED * delta);
-            
+
             // remove lasers that are off-screen
             if (laser.getX() > width) {
                 iterator.remove();
@@ -171,21 +172,21 @@ public class GamesWithStef implements ApplicationListener {
         characterSprite2.draw(spriteBatch);
         characterSprite3.draw(spriteBatch);
         characterSprite4.draw(spriteBatch);
-        
+
         // draw lasers
         for (Sprite laser : lasers) {
             laser.draw(spriteBatch);
         }
-        
+
         spriteBatch.end();
     }
 
     private void shootLaser() {
         // Calculate eye position based on character sprite position and scale
         // The character is scaled at 0.5f, so we need to account for that
-        float eyeX = characterSprite1.getX() + (characterSprite1.getWidth() * 0.8f);
-        float eyeY = characterSprite1.getY() + (characterSprite1.getHeight() * 0.8f);
-        
+        float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
+        float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
+
         Sprite laser = new Sprite(laserTexture);
         laser.setPosition(eyeX, eyeY);
         lasers.add(laser);
