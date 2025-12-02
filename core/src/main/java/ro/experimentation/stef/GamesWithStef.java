@@ -46,6 +46,8 @@ public class GamesWithStef implements ApplicationListener {
     // laser assets
     Texture laserTexture;
     Texture blueLaserTexture;
+    Texture yellowLaserTexture;  // for AOE attacks
+    Texture cyanBeamTexture;     // for large beam attacks
     ArrayList<Sprite> lasers;
     ArrayList<LaserData> enemyLasers;
     float laserCooldown = 0f;
@@ -146,6 +148,20 @@ public class GamesWithStef implements ApplicationListener {
         blueLaserTexture = new Texture(blueLaserPixmap);
         blueLaserPixmap.dispose();
 
+        // create yellow laser texture for AOE attacks
+        Pixmap yellowLaserPixmap = new Pixmap(40, 5, Pixmap.Format.RGBA8888);
+        yellowLaserPixmap.setColor(Color.YELLOW);
+        yellowLaserPixmap.fill();
+        yellowLaserTexture = new Texture(yellowLaserPixmap);
+        yellowLaserPixmap.dispose();
+
+        // create cyan beam texture for large beam attacks
+        Pixmap cyanBeamPixmap = new Pixmap(150, 25, Pixmap.Format.RGBA8888);
+        cyanBeamPixmap.setColor(Color.CYAN);
+        cyanBeamPixmap.fill();
+        cyanBeamTexture = new Texture(cyanBeamPixmap);
+        cyanBeamPixmap.dispose();
+
         lasers = new ArrayList<>();
         enemyLasers = new ArrayList<>();
 
@@ -235,6 +251,12 @@ public class GamesWithStef implements ApplicationListener {
         }
         if (blueLaserTexture != null) {
             blueLaserTexture.dispose();
+        }
+        if (yellowLaserTexture != null) {
+            yellowLaserTexture.dispose();
+        }
+        if (cyanBeamTexture != null) {
+            cyanBeamTexture.dispose();
         }
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
@@ -379,7 +401,7 @@ public class GamesWithStef implements ApplicationListener {
             if (character2Alive) {
                 character2ShootTimer -= delta;
                 if (character2ShootTimer <= 0) {
-                    shootEnemyLaser(characterSprite2);
+                    shootAOEAttack(characterSprite2);  // Character 2 uses AOE attack
                     character2ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
@@ -387,7 +409,7 @@ public class GamesWithStef implements ApplicationListener {
             if (character3Alive) {
                 character3ShootTimer -= delta;
                 if (character3ShootTimer <= 0) {
-                    shootEnemyLaser(characterSprite3);
+                    shootBeamAttack(characterSprite3);  // Character 3 uses beam attack
                     character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
@@ -395,7 +417,7 @@ public class GamesWithStef implements ApplicationListener {
             if (character4Alive) {
                 character4ShootTimer -= delta;
                 if (character4ShootTimer <= 0) {
-                    shootEnemyLaser(characterSprite4);
+                    shootEnemyLaser(characterSprite4);  // Character 4 uses normal laser
                     character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
                 }
             }
@@ -555,5 +577,59 @@ public class GamesWithStef implements ApplicationListener {
 
         // Add laser to the list with velocity
         enemyLasers.add(new LaserData(laser, direction));
+    }
+
+    private void shootAOEAttack(Sprite enemy) {
+        // Calculate eye position for the enemy
+        float eyeX = enemy.getX() - 50 + (enemy.getWidth() * 0.8f);
+        float eyeY = enemy.getY() - 100 + (enemy.getHeight() * 0.8f);
+
+        // Calculate Broly's center position
+        float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
+        float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
+
+        // Calculate base direction from enemy to Broly
+        Vector2 baseDirection = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        float baseAngle = baseDirection.angleDeg();
+
+        // Create 7 projectiles in a spread pattern
+        int numProjectiles = 7;
+        float spreadAngle = 40f; // Total spread of 40 degrees
+        float angleStep = spreadAngle / (numProjectiles - 1);
+        float startAngle = baseAngle - (spreadAngle / 2);
+
+        for (int i = 0; i < numProjectiles; i++) {
+            float angle = startAngle + (i * angleStep);
+            Vector2 direction = new Vector2();
+            direction.x = MathUtils.cosDeg(angle);
+            direction.y = MathUtils.sinDeg(angle);
+            direction.scl(LASER_SPEED);
+
+            Sprite laser = new Sprite(yellowLaserTexture);
+            laser.setPosition(eyeX, eyeY);
+            enemyLasers.add(new LaserData(laser, direction));
+        }
+    }
+
+    private void shootBeamAttack(Sprite enemy) {
+        // Calculate eye position for the enemy
+        float eyeX = enemy.getX() - 50 + (enemy.getWidth() * 0.8f);
+        float eyeY = enemy.getY() - 100 + (enemy.getHeight() * 0.8f);
+
+        // Calculate Broly's center position
+        float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
+        float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
+
+        // Calculate direction from enemy to Broly using Vector2
+        Vector2 direction = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        direction.nor(); // Normalize the vector
+        direction.scl(LASER_SPEED * 0.7f); // Slower beam (70% of normal speed)
+
+        // Create large beam sprite
+        Sprite beam = new Sprite(cyanBeamTexture);
+        beam.setPosition(eyeX, eyeY);
+
+        // Add beam to the list with velocity
+        enemyLasers.add(new LaserData(beam, direction));
     }
 }
