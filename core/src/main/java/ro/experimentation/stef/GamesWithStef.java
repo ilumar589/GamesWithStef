@@ -16,7 +16,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Pool;
-import com.badlogic.gdx.utils.Pools;
+import com.badlogic.gdx.utils.PoolManager;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import java.util.ArrayList;
@@ -168,6 +168,9 @@ public class GamesWithStef implements ApplicationListener {
 
     // Object pool for LaserData to reduce allocations
     private Pool<LaserData> laserDataPool;
+    
+    // PoolManager for managing Vector2 object pools
+    private PoolManager poolManager;
 
     @Override
     public void create() {
@@ -249,6 +252,9 @@ public class GamesWithStef implements ApplicationListener {
                 return new LaserData();
             }
         };
+        
+        // Initialize PoolManager for Vector2 pooling
+        poolManager = new PoolManager();
 
         // Initialize cached Rectangle objects for collision detection
         tempLaserRect = new Rectangle();
@@ -378,8 +384,10 @@ public class GamesWithStef implements ApplicationListener {
         if (laserDataPool != null) {
             laserDataPool.clear();
         }
-        // Free all pooled Vector2 objects from libGDX Pools
-        Pools.get(Vector2.class).clear();
+        // Clear PoolManager for Vector2 objects
+        if (poolManager != null) {
+            poolManager.clear();
+        }
     }
 
     private void handleCharacterSelection() {
@@ -950,7 +958,7 @@ public class GamesWithStef implements ApplicationListener {
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
         // Calculate direction from enemy to Broly using pooled Vector2
-        Vector2 direction = Pools.obtain(Vector2.class);
+        Vector2 direction = poolManager.obtain(Vector2.class);
         direction.set(brolyX - eyeX, brolyY - eyeY);
         direction.nor(); // Normalize the vector
         direction.scl(LASER_SPEED); // Scale to laser speed
@@ -965,7 +973,7 @@ public class GamesWithStef implements ApplicationListener {
         laserData.velocity.set(direction);
         
         // Free the temporary direction vector
-        Pools.free(direction);
+        poolManager.free(direction);
 
         // Add laser to the list
         enemyLasers.add(laserData);
@@ -981,10 +989,10 @@ public class GamesWithStef implements ApplicationListener {
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
         // Calculate base direction from enemy to Broly using pooled Vector2
-        Vector2 baseDirection = Pools.obtain(Vector2.class);
+        Vector2 baseDirection = poolManager.obtain(Vector2.class);
         baseDirection.set(brolyX - eyeX, brolyY - eyeY);
         float baseAngle = baseDirection.angleDeg();
-        Pools.free(baseDirection);  // Free immediately after use
+        poolManager.free(baseDirection);  // Free immediately after use
 
         // Create 7 projectiles in a spread pattern
         int numProjectiles = 7;
@@ -1019,7 +1027,7 @@ public class GamesWithStef implements ApplicationListener {
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
         // Calculate direction from enemy to Broly using pooled Vector2
-        Vector2 direction = Pools.obtain(Vector2.class);
+        Vector2 direction = poolManager.obtain(Vector2.class);
         direction.set(brolyX - eyeX, brolyY - eyeY);
         direction.nor(); // Normalize the vector
         direction.scl(LASER_SPEED * 0.7f); // Slower beam (70% of normal speed)
@@ -1034,7 +1042,7 @@ public class GamesWithStef implements ApplicationListener {
         laserData.velocity.set(direction);
         
         // Free the temporary direction vector
-        Pools.free(direction);
+        poolManager.free(direction);
 
         // Add beam to the list
         enemyLasers.add(laserData);
