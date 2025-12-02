@@ -15,6 +15,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Pool;
+import com.badlogic.gdx.utils.PoolManager;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import java.util.ArrayList;
@@ -140,16 +142,35 @@ public class GamesWithStef implements ApplicationListener {
     float character3ShootTimer;
     float character4ShootTimer;
 
+    // Cached Rectangle objects for collision detection to reduce allocations
+    private Rectangle tempLaserRect;
+    private Rectangle tempChar2Rect;
+    private Rectangle tempChar3Rect;
+    private Rectangle tempChar4Rect;
+    private Rectangle tempChar1Rect;
+
     // Helper class to store laser with velocity
+    // Poolable object to reduce allocations
     private static class LaserData {
         Sprite sprite;
         Vector2 velocity;
 
-        LaserData(Sprite sprite, Vector2 velocity) {
-            this.sprite = sprite;
-            this.velocity = velocity;
+        LaserData() {
+            this.velocity = new Vector2();
+        }
+
+        // Reset method for object pooling
+        void reset() {
+            this.sprite = null;
+            this.velocity.set(0, 0);
         }
     }
+
+    // Object pool for LaserData to reduce allocations
+    private Pool<LaserData> laserDataPool;
+    
+    // PoolManager for managing Vector2 object pools
+    private PoolManager poolManager;
 
     @Override
     public void create() {
@@ -223,6 +244,24 @@ public class GamesWithStef implements ApplicationListener {
         lasers = new ArrayList<>();
         enemyLasers = new ArrayList<>();
         playerSpecialLasers = new ArrayList<>();
+
+        // Initialize object pool for LaserData to reduce allocations
+        laserDataPool = new Pool<LaserData>() {
+            @Override
+            protected LaserData newObject() {
+                return new LaserData();
+            }
+        };
+        
+        // Initialize PoolManager for Vector2 pooling
+        poolManager = new PoolManager();
+
+        // Initialize cached Rectangle objects for collision detection
+        tempLaserRect = new Rectangle();
+        tempChar2Rect = new Rectangle();
+        tempChar3Rect = new Rectangle();
+        tempChar4Rect = new Rectangle();
+        tempChar1Rect = new Rectangle();
 
         // end assets initialization
 
@@ -339,6 +378,15 @@ public class GamesWithStef implements ApplicationListener {
                     character.texture.dispose();
                 }
             }
+        }
+        
+        // Clear object pools
+        if (laserDataPool != null) {
+            laserDataPool.clear();
+        }
+        // Clear PoolManager for Vector2 objects
+        if (poolManager != null) {
+            poolManager.clear();
         }
     }
 
@@ -567,36 +615,46 @@ public class GamesWithStef implements ApplicationListener {
             }
 
             // collision detection with enemy characters
-            Rectangle laserRect = laser.getBoundingRectangle();
+            // Use cached rectangle to avoid allocation
+            tempLaserRect.set(laser.getBoundingRectangle());
 
             // check collision with character 2
-            if (character2Alive && laserRect.overlaps(characterSprite2.getBoundingRectangle())) {
-                character2Health -= DAMAGE_PER_HIT;
-                if (character2Health <= 0) {
-                    character2Alive = false;
+            if (character2Alive) {
+                tempChar2Rect.set(characterSprite2.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar2Rect)) {
+                    character2Health -= DAMAGE_PER_HIT;
+                    if (character2Health <= 0) {
+                        character2Alive = false;
+                    }
+                    iterator.remove();
+                    continue;
                 }
-                iterator.remove();
-                continue;
             }
 
             // check collision with character 3
-            if (character3Alive && laserRect.overlaps(characterSprite3.getBoundingRectangle())) {
-                character3Health -= DAMAGE_PER_HIT;
-                if (character3Health <= 0) {
-                    character3Alive = false;
+            if (character3Alive) {
+                tempChar3Rect.set(characterSprite3.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar3Rect)) {
+                    character3Health -= DAMAGE_PER_HIT;
+                    if (character3Health <= 0) {
+                        character3Alive = false;
+                    }
+                    iterator.remove();
+                    continue;
                 }
-                iterator.remove();
-                continue;
             }
 
             // check collision with character 4
-            if (character4Alive && laserRect.overlaps(characterSprite4.getBoundingRectangle())) {
-                character4Health -= DAMAGE_PER_HIT;
-                if (character4Health <= 0) {
-                    character4Alive = false;
+            if (character4Alive) {
+                tempChar4Rect.set(characterSprite4.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar4Rect)) {
+                    character4Health -= DAMAGE_PER_HIT;
+                    if (character4Health <= 0) {
+                        character4Alive = false;
+                    }
+                    iterator.remove();
+                    continue;
                 }
-                iterator.remove();
-                continue;
             }
         }
 
@@ -610,40 +668,57 @@ public class GamesWithStef implements ApplicationListener {
             if (laserData.sprite.getX() > width || laserData.sprite.getX() < -100 ||
                 laserData.sprite.getY() > height || laserData.sprite.getY() < -100) {
                 playerSpecialIterator.remove();
+                // Free the LaserData object back to the pool
+                laserDataPool.free(laserData);
                 continue;
             }
 
             // collision detection with enemy characters
-            Rectangle laserRect = laserData.sprite.getBoundingRectangle();
+            tempLaserRect.set(laserData.sprite.getBoundingRectangle());
 
             // check collision with character 2
-            if (character2Alive && laserRect.overlaps(characterSprite2.getBoundingRectangle())) {
-                character2Health -= DAMAGE_PER_HIT;
-                if (character2Health <= 0) {
-                    character2Alive = false;
+            if (character2Alive) {
+                tempChar2Rect.set(characterSprite2.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar2Rect)) {
+                    character2Health -= DAMAGE_PER_HIT;
+                    if (character2Health <= 0) {
+                        character2Alive = false;
+                    }
+                    playerSpecialIterator.remove();
+                    // Free the LaserData object back to the pool
+                    laserDataPool.free(laserData);
+                    continue;
                 }
-                playerSpecialIterator.remove();
-                continue;
             }
 
             // check collision with character 3
-            if (character3Alive && laserRect.overlaps(characterSprite3.getBoundingRectangle())) {
-                character3Health -= DAMAGE_PER_HIT;
-                if (character3Health <= 0) {
-                    character3Alive = false;
+            if (character3Alive) {
+                tempChar3Rect.set(characterSprite3.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar3Rect)) {
+                    character3Health -= DAMAGE_PER_HIT;
+                    if (character3Health <= 0) {
+                        character3Alive = false;
+                    }
+                    playerSpecialIterator.remove();
+                    // Free the LaserData object back to the pool
+                    laserDataPool.free(laserData);
+                    continue;
                 }
-                playerSpecialIterator.remove();
-                continue;
             }
 
             // check collision with character 4
-            if (character4Alive && laserRect.overlaps(characterSprite4.getBoundingRectangle())) {
-                character4Health -= DAMAGE_PER_HIT;
-                if (character4Health <= 0) {
-                    character4Alive = false;
+            if (character4Alive) {
+                tempChar4Rect.set(characterSprite4.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar4Rect)) {
+                    character4Health -= DAMAGE_PER_HIT;
+                    if (character4Health <= 0) {
+                        character4Alive = false;
+                    }
+                    playerSpecialIterator.remove();
+                    // Free the LaserData object back to the pool
+                    laserDataPool.free(laserData);
+                    continue;
                 }
-                playerSpecialIterator.remove();
-                continue;
             }
         }
 
@@ -657,16 +732,25 @@ public class GamesWithStef implements ApplicationListener {
             if (laserData.sprite.getX() > width || laserData.sprite.getX() < -100 ||
                 laserData.sprite.getY() > height || laserData.sprite.getY() < -100) {
                 enemyIterator.remove();
+                // Free the LaserData object back to the pool
+                laserDataPool.free(laserData);
                 continue;
             }
 
             // check collision with Broly (character 1)
-            if (character1Alive && laserData.sprite.getBoundingRectangle().overlaps(characterSprite1.getBoundingRectangle())) {
-                character1Health -= DAMAGE_PER_HIT;
-                if (character1Health <= 0) {
-                    character1Alive = false;
+            if (character1Alive) {
+                tempLaserRect.set(laserData.sprite.getBoundingRectangle());
+                tempChar1Rect.set(characterSprite1.getBoundingRectangle());
+                if (tempLaserRect.overlaps(tempChar1Rect)) {
+                    character1Health -= DAMAGE_PER_HIT;
+                    if (character1Health <= 0) {
+                        character1Alive = false;
+                    }
+                    enemyIterator.remove();
+                    // Free the LaserData object back to the pool
+                    laserDataPool.free(laserData);
+                    continue;
                 }
-                enemyIterator.remove();
             }
         }
 
@@ -873,8 +957,9 @@ public class GamesWithStef implements ApplicationListener {
         float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
-        // Calculate direction from enemy to Broly using Vector2
-        Vector2 direction = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        // Calculate direction from enemy to Broly using pooled Vector2
+        Vector2 direction = poolManager.obtain(Vector2.class);
+        direction.set(brolyX - eyeX, brolyY - eyeY);
         direction.nor(); // Normalize the vector
         direction.scl(LASER_SPEED); // Scale to laser speed
 
@@ -882,8 +967,16 @@ public class GamesWithStef implements ApplicationListener {
         Sprite laser = new Sprite(blueLaserTexture);
         laser.setPosition(eyeX, eyeY);
 
-        // Add laser to the list with velocity
-        enemyLasers.add(new LaserData(laser, direction));
+        // Get LaserData from pool and set values
+        LaserData laserData = laserDataPool.obtain();
+        laserData.sprite = laser;
+        laserData.velocity.set(direction);
+        
+        // Free the temporary direction vector
+        poolManager.free(direction);
+
+        // Add laser to the list
+        enemyLasers.add(laserData);
     }
 
     private void shootAOEAttack(Sprite enemy) {
@@ -895,9 +988,11 @@ public class GamesWithStef implements ApplicationListener {
         float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
-        // Calculate base direction from enemy to Broly
-        Vector2 baseDirection = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        // Calculate base direction from enemy to Broly using pooled Vector2
+        Vector2 baseDirection = poolManager.obtain(Vector2.class);
+        baseDirection.set(brolyX - eyeX, brolyY - eyeY);
         float baseAngle = baseDirection.angleDeg();
+        poolManager.free(baseDirection);  // Free immediately after use
 
         // Create 7 projectiles in a spread pattern
         int numProjectiles = 7;
@@ -907,14 +1002,18 @@ public class GamesWithStef implements ApplicationListener {
 
         for (int i = 0; i < numProjectiles; i++) {
             float angle = startAngle + (i * angleStep);
-            Vector2 direction = new Vector2();
-            direction.x = MathUtils.cosDeg(angle);
-            direction.y = MathUtils.sinDeg(angle);
-            direction.scl(LASER_SPEED);
+            
+            // Get LaserData from pool
+            LaserData laserData = laserDataPool.obtain();
+            laserData.velocity.x = MathUtils.cosDeg(angle);
+            laserData.velocity.y = MathUtils.sinDeg(angle);
+            laserData.velocity.scl(LASER_SPEED);
 
             Sprite laser = new Sprite(yellowLaserTexture);
             laser.setPosition(eyeX, eyeY);
-            enemyLasers.add(new LaserData(laser, direction));
+            laserData.sprite = laser;
+            
+            enemyLasers.add(laserData);
         }
     }
 
@@ -927,8 +1026,9 @@ public class GamesWithStef implements ApplicationListener {
         float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
         float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
 
-        // Calculate direction from enemy to Broly using Vector2
-        Vector2 direction = new Vector2(brolyX - eyeX, brolyY - eyeY);
+        // Calculate direction from enemy to Broly using pooled Vector2
+        Vector2 direction = poolManager.obtain(Vector2.class);
+        direction.set(brolyX - eyeX, brolyY - eyeY);
         direction.nor(); // Normalize the vector
         direction.scl(LASER_SPEED * 0.7f); // Slower beam (70% of normal speed)
 
@@ -936,8 +1036,16 @@ public class GamesWithStef implements ApplicationListener {
         Sprite beam = new Sprite(cyanBeamTexture);
         beam.setPosition(eyeX, eyeY);
 
-        // Add beam to the list with velocity
-        enemyLasers.add(new LaserData(beam, direction));
+        // Get LaserData from pool and set values
+        LaserData laserData = laserDataPool.obtain();
+        laserData.sprite = beam;
+        laserData.velocity.set(direction);
+        
+        // Free the temporary direction vector
+        poolManager.free(direction);
+
+        // Add beam to the list
+        enemyLasers.add(laserData);
     }
 
     // Player Special Ability A: Rapid Fire - shoots 3 green lasers in a tight spread
@@ -963,16 +1071,19 @@ public class GamesWithStef implements ApplicationListener {
         
         for (int i = 0; i < numProjectiles; i++) {
             float angle = i * angleStep;
-            Vector2 direction = new Vector2();
-            direction.x = MathUtils.cosDeg(angle);
-            direction.y = MathUtils.sinDeg(angle);
-            direction.scl(LASER_SPEED);
+            
+            // Get LaserData from pool
+            LaserData laserData = laserDataPool.obtain();
+            laserData.velocity.x = MathUtils.cosDeg(angle);
+            laserData.velocity.y = MathUtils.sinDeg(angle);
+            laserData.velocity.scl(LASER_SPEED);
             
             Sprite laser = new Sprite(magentaLaserTexture);
             laser.setPosition(eyeX, eyeY);
+            laserData.sprite = laser;
             
             // Add to player special lasers list with velocity
-            playerSpecialLasers.add(new LaserData(laser, direction));
+            playerSpecialLasers.add(laserData);
         }
     }
 
