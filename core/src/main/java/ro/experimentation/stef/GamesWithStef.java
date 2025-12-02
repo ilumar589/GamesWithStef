@@ -80,7 +80,7 @@ public class GamesWithStef implements ApplicationListener {
     float laserCooldown = 0f;
     final float LASER_COOLDOWN_TIME = 0.3f;
     final float LASER_SPEED = 700f;
-    
+
     // player special abilities cooldowns
     float abilityACooldown = 0f;
     float abilitySCooldown = 0f;
@@ -168,7 +168,7 @@ public class GamesWithStef implements ApplicationListener {
 
     // Object pool for LaserData to reduce allocations
     private Pool<LaserData> laserDataPool;
-    
+
     // PoolManager for managing Vector2 object pools
     private PoolManager poolManager;
 
@@ -252,15 +252,10 @@ public class GamesWithStef implements ApplicationListener {
                 return new LaserData();
             }
         };
-        
+
         // Initialize PoolManager for Vector2 pooling
         poolManager = new PoolManager();
-        poolManager.addPool(Vector2.class, new Pool<Vector2>() {
-            @Override
-            protected Vector2 newObject() {
-                return new Vector2();
-            }
-        });
+        poolManager.addPool(Vector2::new);
 
         // Initialize cached Rectangle objects for collision detection
         tempLaserRect = new Rectangle();
@@ -385,7 +380,7 @@ public class GamesWithStef implements ApplicationListener {
                 }
             }
         }
-        
+
         // Clear object pools
         if (laserDataPool != null) {
             laserDataPool.clear();
@@ -422,7 +417,7 @@ public class GamesWithStef implements ApplicationListener {
         spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
 
         spriteBatch.begin();
-        
+
         // Draw background
         spriteBatch.draw(backgroundTexture, 0, 0, width, height);
 
@@ -440,8 +435,8 @@ public class GamesWithStef implements ApplicationListener {
             float characterX = calculateCharacterX(i, CHARACTER_SCALE);
 
             // Draw character sprite
-            spriteBatch.draw(character.texture, characterX, characterY, 
-                           character.texture.getWidth() * CHARACTER_SCALE, 
+            spriteBatch.draw(character.texture, characterX, characterY,
+                           character.texture.getWidth() * CHARACTER_SCALE,
                            character.texture.getHeight() * CHARACTER_SCALE);
 
             // Draw character name
@@ -459,18 +454,18 @@ public class GamesWithStef implements ApplicationListener {
         shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(Color.YELLOW);
-        
+
         CharacterInfo selectedChar = characters[selectedCharacterIndex];
         float selectedX = calculateCharacterX(selectedCharacterIndex, CHARACTER_SCALE);
         float boxWidth = selectedChar.texture.getWidth() * CHARACTER_SCALE;
         float boxHeight = selectedChar.texture.getHeight() * CHARACTER_SCALE;
-        
+
         // Draw thick selection box
         for (int i = 0; i < HIGHLIGHT_THICKNESS; i++) {
-            shapeRenderer.rect(selectedX - HIGHLIGHT_PADDING - i, characterY - HIGHLIGHT_PADDING - i, 
+            shapeRenderer.rect(selectedX - HIGHLIGHT_PADDING - i, characterY - HIGHLIGHT_PADDING - i,
                              boxWidth + HIGHLIGHT_PADDING * 2 + i * 2, boxHeight + HIGHLIGHT_PADDING * 2 + i * 2);
         }
-        
+
         shapeRenderer.end();
     }
 
@@ -580,24 +575,24 @@ public class GamesWithStef implements ApplicationListener {
             shootLaser();
             laserCooldown = LASER_COOLDOWN_TIME;
         }
-        
+
         // special abilities cooldowns
         abilityACooldown -= delta;
         abilitySCooldown -= delta;
         abilityDCooldown -= delta;
-        
+
         // Ability A: Rapid Fire - shoots 3 fast green lasers in quick succession
         if (Gdx.input.isKeyJustPressed(Input.Keys.A) && abilityACooldown <= 0) {
             shootRapidFire();
             abilityACooldown = ABILITY_COOLDOWN_TIME;
         }
-        
+
         // Ability S: Circular Burst - shoots 12 magenta lasers in all directions
         if (Gdx.input.isKeyJustPressed(Input.Keys.S) && abilitySCooldown <= 0) {
             shootCircularBurst();
             abilitySCooldown = ABILITY_COOLDOWN_TIME;
         }
-        
+
         // Ability D: Mega Beam - shoots a massive orange beam
         if (Gdx.input.isKeyJustPressed(Input.Keys.D) && abilityDCooldown <= 0) {
             shootMegaBeam();
@@ -977,7 +972,7 @@ public class GamesWithStef implements ApplicationListener {
         LaserData laserData = laserDataPool.obtain();
         laserData.sprite = laser;
         laserData.velocity.set(direction);
-        
+
         // Free the temporary direction vector
         poolManager.free(direction);
 
@@ -1008,7 +1003,7 @@ public class GamesWithStef implements ApplicationListener {
 
         for (int i = 0; i < numProjectiles; i++) {
             float angle = startAngle + (i * angleStep);
-            
+
             // Get LaserData from pool
             LaserData laserData = laserDataPool.obtain();
             laserData.velocity.x = MathUtils.cosDeg(angle);
@@ -1018,7 +1013,7 @@ public class GamesWithStef implements ApplicationListener {
             Sprite laser = new Sprite(yellowLaserTexture);
             laser.setPosition(eyeX, eyeY);
             laserData.sprite = laser;
-            
+
             enemyLasers.add(laserData);
         }
     }
@@ -1046,7 +1041,7 @@ public class GamesWithStef implements ApplicationListener {
         LaserData laserData = laserDataPool.obtain();
         laserData.sprite = beam;
         laserData.velocity.set(direction);
-        
+
         // Free the temporary direction vector
         poolManager.free(direction);
 
@@ -1058,7 +1053,7 @@ public class GamesWithStef implements ApplicationListener {
     private void shootRapidFire() {
         float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
         float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
-        
+
         // Shoot 3 lasers with slight vertical spread
         for (int i = -1; i <= 1; i++) {
             Sprite laser = new Sprite(greenLaserTexture);
@@ -1071,23 +1066,23 @@ public class GamesWithStef implements ApplicationListener {
     private void shootCircularBurst() {
         float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
         float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
-        
+
         int numProjectiles = 12;
         float angleStep = 360f / numProjectiles;
-        
+
         for (int i = 0; i < numProjectiles; i++) {
             float angle = i * angleStep;
-            
+
             // Get LaserData from pool
             LaserData laserData = laserDataPool.obtain();
             laserData.velocity.x = MathUtils.cosDeg(angle);
             laserData.velocity.y = MathUtils.sinDeg(angle);
             laserData.velocity.scl(LASER_SPEED);
-            
+
             Sprite laser = new Sprite(magentaLaserTexture);
             laser.setPosition(eyeX, eyeY);
             laserData.sprite = laser;
-            
+
             // Add to player special lasers list with velocity
             playerSpecialLasers.add(laserData);
         }
@@ -1097,7 +1092,7 @@ public class GamesWithStef implements ApplicationListener {
     private void shootMegaBeam() {
         float eyeX = characterSprite1.getX() - 50 + (characterSprite1.getWidth() * 0.8f);
         float eyeY = characterSprite1.getY() - 100 + (characterSprite1.getHeight() * 0.8f);
-        
+
         Sprite megaBeam = new Sprite(orangeLaserTexture);
         megaBeam.setPosition(eyeX, eyeY);
         lasers.add(megaBeam);
