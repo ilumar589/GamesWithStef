@@ -101,6 +101,11 @@ public class GamesWithStef implements ApplicationListener {
     final float HEALTH_BAR_WIDTH = 120f;
     final float HEALTH_BAR_HEIGHT = 12f;
 
+    // Character selection rendering constants
+    final float CHARACTER_SCALE = 0.4f;
+    final int HIGHLIGHT_THICKNESS = 5;
+    final float HIGHLIGHT_PADDING = 10f;
+
     float character1Health;
     float character2Health;
     float character3Health;
@@ -115,6 +120,11 @@ public class GamesWithStef implements ApplicationListener {
     final float ENEMY_SPEED = 125f;
     final float MIN_TIMER_DURATION = 1f;
     final float MAX_TIMER_DURATION = 3f;
+    final float[][] ENEMY_SPAWN_POSITIONS = {
+        {1000f, 400f},  // Enemy 1 position
+        {1000f, 0f},    // Enemy 2 position
+        {700f, 150f}    // Enemy 3 position
+    };
     Vector2 character2Velocity;
     Vector2 character3Velocity;
     Vector2 character4Velocity;
@@ -360,39 +370,28 @@ public class GamesWithStef implements ApplicationListener {
         spriteBatch.draw(backgroundTexture, 0, 0, width, height);
 
         // Draw title text
-        String titleText = "SELECT YOUR FIGHTER";
-        glyphLayout.setText(font, titleText);
-        float titleX = (width - glyphLayout.width) / 2;
-        float titleY = height - 100;
-        font.draw(spriteBatch, titleText, titleX, titleY);
+        drawTextCentered("SELECT YOUR FIGHTER", height - 100, 3f);
 
         // Draw instruction text
-        font.getData().setScale(2f);
-        String instructionText = "Use LEFT/RIGHT arrows - Press ENTER to confirm";
-        glyphLayout.setText(font, instructionText);
-        float instructionX = (width - glyphLayout.width) / 2;
-        float instructionY = 100;
-        font.draw(spriteBatch, instructionText, instructionX, instructionY);
-        font.getData().setScale(3f);
+        drawTextCentered("Use LEFT/RIGHT arrows - Press ENTER to confirm", 100, 2f);
 
         // Calculate layout for characters (horizontal layout)
         float spacing = width / (characters.length + 1);
         float characterY = height / 2 - 100;
-        float characterScale = 0.4f;
 
         for (int i = 0; i < characters.length; i++) {
             CharacterInfo character = characters[i];
-            float characterX = spacing * (i + 1) - (character.texture.getWidth() * characterScale / 2);
+            float characterX = calculateCharacterX(i, CHARACTER_SCALE);
 
             // Draw character sprite
             spriteBatch.draw(character.texture, characterX, characterY, 
-                           character.texture.getWidth() * characterScale, 
-                           character.texture.getHeight() * characterScale);
+                           character.texture.getWidth() * CHARACTER_SCALE, 
+                           character.texture.getHeight() * CHARACTER_SCALE);
 
             // Draw character name
             font.getData().setScale(2f);
             glyphLayout.setText(font, character.name);
-            float nameX = characterX + (character.texture.getWidth() * characterScale / 2) - (glyphLayout.width / 2);
+            float nameX = characterX + (character.texture.getWidth() * CHARACTER_SCALE / 2) - (glyphLayout.width / 2);
             float nameY = characterY - 30;
             font.draw(spriteBatch, character.name, nameX, nameY);
             font.getData().setScale(3f);
@@ -405,18 +404,32 @@ public class GamesWithStef implements ApplicationListener {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(Color.YELLOW);
         
-        float spacing2 = width / (characters.length + 1);
         CharacterInfo selectedChar = characters[selectedCharacterIndex];
-        float selectedX = spacing2 * (selectedCharacterIndex + 1) - (selectedChar.texture.getWidth() * characterScale / 2);
-        float boxWidth = selectedChar.texture.getWidth() * characterScale;
-        float boxHeight = selectedChar.texture.getHeight() * characterScale;
+        float selectedX = calculateCharacterX(selectedCharacterIndex, CHARACTER_SCALE);
+        float boxWidth = selectedChar.texture.getWidth() * CHARACTER_SCALE;
+        float boxHeight = selectedChar.texture.getHeight() * CHARACTER_SCALE;
         
         // Draw thick selection box
-        for (int i = 0; i < 5; i++) {
-            shapeRenderer.rect(selectedX - 10 - i, characterY - 10 - i, boxWidth + 20 + i * 2, boxHeight + 20 + i * 2);
+        for (int i = 0; i < HIGHLIGHT_THICKNESS; i++) {
+            shapeRenderer.rect(selectedX - HIGHLIGHT_PADDING - i, characterY - HIGHLIGHT_PADDING - i, 
+                             boxWidth + HIGHLIGHT_PADDING * 2 + i * 2, boxHeight + HIGHLIGHT_PADDING * 2 + i * 2);
         }
         
         shapeRenderer.end();
+    }
+
+    private float calculateCharacterX(int index, float scale) {
+        float spacing = width / (characters.length + 1);
+        return spacing * (index + 1) - (characters[index].texture.getWidth() * scale / 2);
+    }
+
+    private void drawTextCentered(String text, float y, float scale) {
+        float originalScale = font.getData().scaleX;
+        font.getData().setScale(scale);
+        glyphLayout.setText(font, text);
+        float x = (width - glyphLayout.width) / 2;
+        font.draw(spriteBatch, text, x, y);
+        font.getData().setScale(originalScale);
     }
 
     private void startGameWithSelectedCharacter() {
@@ -428,11 +441,6 @@ public class GamesWithStef implements ApplicationListener {
 
         // Assign remaining characters as enemies (characters 2, 3, 4)
         int enemyIndex = 0;
-        float[] enemyPositions = {
-            1000, 400,  // Enemy 1 position
-            1000, 0,    // Enemy 2 position
-            700, 150    // Enemy 3 position
-        };
 
         for (int i = 0; i < characters.length; i++) {
             if (i != selectedCharacterIndex) {
@@ -440,17 +448,17 @@ public class GamesWithStef implements ApplicationListener {
                     characterTexture2 = characters[i].texture;
                     characterSprite2 = new Sprite(characterTexture2);
                     characterSprite2.setScale(0.5f);
-                    characterSprite2.setPosition(enemyPositions[0], enemyPositions[1]);
+                    characterSprite2.setPosition(ENEMY_SPAWN_POSITIONS[0][0], ENEMY_SPAWN_POSITIONS[0][1]);
                 } else if (enemyIndex == 1) {
                     characterTexture3 = characters[i].texture;
                     characterSprite3 = new Sprite(characterTexture3);
                     characterSprite3.setScale(0.5f);
-                    characterSprite3.setPosition(enemyPositions[2], enemyPositions[3]);
+                    characterSprite3.setPosition(ENEMY_SPAWN_POSITIONS[1][0], ENEMY_SPAWN_POSITIONS[1][1]);
                 } else if (enemyIndex == 2) {
                     characterTexture4 = characters[i].texture;
                     characterSprite4 = new Sprite(characterTexture4);
                     characterSprite4.setScale(0.5f);
-                    characterSprite4.setPosition(enemyPositions[4], enemyPositions[5]);
+                    characterSprite4.setPosition(ENEMY_SPAWN_POSITIONS[2][0], ENEMY_SPAWN_POSITIONS[2][1]);
                 }
                 enemyIndex++;
             }
