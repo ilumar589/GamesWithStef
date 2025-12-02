@@ -332,6 +332,18 @@ public class GamesWithStef implements ApplicationListener {
         if (font != null) {
             font.dispose();
         }
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
+        }
+        if (dragonBallMusic != null) {
+            dragonBallMusic.dispose();
+        }
+        if (spriteBatch != null) {
+            spriteBatch.dispose();
+        }
+        // Dispose character textures from the CharacterInfo array
+        // Note: characterTexture1-4 are references to textures in the characters array,
+        // so we only dispose the textures once from the characters array
         if (characters != null) {
             for (CharacterInfo character : characters) {
                 if (character.texture != null) {
