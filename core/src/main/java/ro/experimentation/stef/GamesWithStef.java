@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import java.util.ArrayList;
@@ -47,6 +49,21 @@ public class GamesWithStef implements ApplicationListener {
     // control classes
     SpriteBatch spriteBatch;
     FillViewport viewport;
+
+    // health system
+    ShapeRenderer shapeRenderer;
+    final float MAX_HEALTH = 100f;
+    final float DAMAGE_PER_HIT = 10f;
+    final float HEALTH_BAR_WIDTH = 120f;
+    final float HEALTH_BAR_HEIGHT = 12f;
+    
+    float character2Health;
+    float character3Health;
+    float character4Health;
+    
+    boolean character2Alive;
+    boolean character3Alive;
+    boolean character4Alive;
 
     @Override
     public void create() {
@@ -88,6 +105,15 @@ public class GamesWithStef implements ApplicationListener {
         spriteBatch = new SpriteBatch();
         viewport = new FillViewport(width, height);
 
+        // initialize health system
+        shapeRenderer = new ShapeRenderer();
+        character2Health = MAX_HEALTH;
+        character3Health = MAX_HEALTH;
+        character4Health = MAX_HEALTH;
+        character2Alive = true;
+        character3Alive = true;
+        character4Alive = true;
+
         // init
         dragonBallMusic.setLooping(true);
         dragonBallMusic.play();
@@ -119,6 +145,9 @@ public class GamesWithStef implements ApplicationListener {
     public void dispose() {
         if (laserTexture != null) {
             laserTexture.dispose();
+        }
+        if (shapeRenderer != null) {
+            shapeRenderer.dispose();
         }
     }
 
@@ -157,6 +186,40 @@ public class GamesWithStef implements ApplicationListener {
             // remove lasers that are off-screen
             if (laser.getX() > width) {
                 iterator.remove();
+                continue;
+            }
+
+            // collision detection with enemy characters
+            Rectangle laserRect = laser.getBoundingRectangle();
+            
+            // check collision with character 2
+            if (character2Alive && laserRect.overlaps(characterSprite2.getBoundingRectangle())) {
+                character2Health -= DAMAGE_PER_HIT;
+                if (character2Health <= 0) {
+                    character2Alive = false;
+                }
+                iterator.remove();
+                continue;
+            }
+            
+            // check collision with character 3
+            if (character3Alive && laserRect.overlaps(characterSprite3.getBoundingRectangle())) {
+                character3Health -= DAMAGE_PER_HIT;
+                if (character3Health <= 0) {
+                    character3Alive = false;
+                }
+                iterator.remove();
+                continue;
+            }
+            
+            // check collision with character 4
+            if (character4Alive && laserRect.overlaps(characterSprite4.getBoundingRectangle())) {
+                character4Health -= DAMAGE_PER_HIT;
+                if (character4Health <= 0) {
+                    character4Alive = false;
+                }
+                iterator.remove();
+                continue;
             }
         }
     }
@@ -169,9 +232,17 @@ public class GamesWithStef implements ApplicationListener {
         spriteBatch.begin();
         spriteBatch.draw(backgroundTexture, 0, 0, width, height);
         characterSprite1.draw(spriteBatch);
-        characterSprite2.draw(spriteBatch);
-        characterSprite3.draw(spriteBatch);
-        characterSprite4.draw(spriteBatch);
+        
+        // only draw alive characters
+        if (character2Alive) {
+            characterSprite2.draw(spriteBatch);
+        }
+        if (character3Alive) {
+            characterSprite3.draw(spriteBatch);
+        }
+        if (character4Alive) {
+            characterSprite4.draw(spriteBatch);
+        }
 
         // draw lasers
         for (Sprite laser : lasers) {
@@ -179,6 +250,22 @@ public class GamesWithStef implements ApplicationListener {
         }
 
         spriteBatch.end();
+
+        // draw health bars
+        shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        
+        if (character2Alive) {
+            drawHealthBar(characterSprite2, character2Health);
+        }
+        if (character3Alive) {
+            drawHealthBar(characterSprite3, character3Health);
+        }
+        if (character4Alive) {
+            drawHealthBar(characterSprite4, character4Health);
+        }
+        
+        shapeRenderer.end();
     }
 
     private void shootLaser() {
@@ -190,5 +277,21 @@ public class GamesWithStef implements ApplicationListener {
         Sprite laser = new Sprite(laserTexture);
         laser.setPosition(eyeX, eyeY);
         lasers.add(laser);
+    }
+
+    private void drawHealthBar(Sprite character, float currentHealth) {
+        // Calculate health bar position
+        // Position above the character's head, centered horizontally
+        float barX = character.getX() + (character.getWidth() * character.getScaleX() / 2) - (HEALTH_BAR_WIDTH / 2);
+        float barY = character.getY() + (character.getHeight() * character.getScaleY()) + 10;
+        
+        // Draw background (red) for max health
+        shapeRenderer.setColor(Color.RED);
+        shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT);
+        
+        // Draw foreground (green) for current health
+        float healthPercentage = currentHealth / MAX_HEALTH;
+        shapeRenderer.setColor(Color.GREEN);
+        shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH * healthPercentage, HEALTH_BAR_HEIGHT);
     }
 }
