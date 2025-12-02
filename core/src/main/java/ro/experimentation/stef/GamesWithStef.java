@@ -5,11 +5,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class GamesWithStef implements ApplicationListener {
@@ -33,6 +36,13 @@ public class GamesWithStef implements ApplicationListener {
     Sprite characterSprite4;
 
     Music   dragonBallMusic;
+
+    // laser assets
+    Texture laserTexture;
+    ArrayList<Sprite> lasers;
+    float laserCooldown = 0f;
+    final float LASER_COOLDOWN_TIME = 0.3f;
+    final float LASER_SPEED = 700f;
 
     // control classes
     SpriteBatch spriteBatch;
@@ -63,6 +73,15 @@ public class GamesWithStef implements ApplicationListener {
         characterSprite4.setPosition(700, 150);
 
         dragonBallMusic = Gdx.audio.newMusic(Gdx.files.internal("01.Chozetsu_Dynamic!_(TV_Size).mp3"));
+
+        // create laser texture programmatically
+        Pixmap laserPixmap = new Pixmap(40, 5, Pixmap.Format.RGBA8888);
+        laserPixmap.setColor(Color.RED);
+        laserPixmap.fill();
+        laserTexture = new Texture(laserPixmap);
+        laserPixmap.dispose();
+        
+        lasers = new ArrayList<>();
 
         // end assets initialization
 
@@ -97,7 +116,9 @@ public class GamesWithStef implements ApplicationListener {
 
     @Override
     public void dispose() {
-
+        if (laserTexture != null) {
+            laserTexture.dispose();
+        }
     }
 
 
@@ -114,10 +135,29 @@ public class GamesWithStef implements ApplicationListener {
         } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
             characterSprite1.translateY(-speed * delta);
         }
+
+        // laser shooting
+        laserCooldown -= delta;
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && laserCooldown <= 0) {
+            shootLaser();
+            laserCooldown = LASER_COOLDOWN_TIME;
+        }
     }
 
     private void logic() {
-
+        float delta = Gdx.graphics.getDeltaTime();
+        
+        // update laser positions
+        Iterator<Sprite> iterator = lasers.iterator();
+        while (iterator.hasNext()) {
+            Sprite laser = iterator.next();
+            laser.translateX(LASER_SPEED * delta);
+            
+            // remove lasers that are off-screen
+            if (laser.getX() > width) {
+                iterator.remove();
+            }
+        }
     }
 
     private void draw() {
@@ -131,6 +171,23 @@ public class GamesWithStef implements ApplicationListener {
         characterSprite2.draw(spriteBatch);
         characterSprite3.draw(spriteBatch);
         characterSprite4.draw(spriteBatch);
+        
+        // draw lasers
+        for (Sprite laser : lasers) {
+            laser.draw(spriteBatch);
+        }
+        
         spriteBatch.end();
+    }
+
+    private void shootLaser() {
+        // Calculate eye position based on character sprite position and scale
+        // The character is scaled at 0.5f, so we need to account for that
+        float eyeX = characterSprite1.getX() + (characterSprite1.getWidth() * 0.8f);
+        float eyeY = characterSprite1.getY() + (characterSprite1.getHeight() * 0.8f);
+        
+        Sprite laser = new Sprite(laserTexture);
+        laser.setPosition(eyeX, eyeY);
+        lasers.add(laser);
     }
 }
