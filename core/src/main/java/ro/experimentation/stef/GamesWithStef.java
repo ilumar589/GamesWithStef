@@ -167,18 +167,7 @@ public class GamesWithStef implements ApplicationListener {
 
         backgroundTexture = new Texture("dragonballbackground.jpg");
 
-        // Don't load character textures yet - will be assigned after selection
-        characterTexture1 = null;
-        characterSprite1 = null;
-
-        characterTexture2 = null;
-        characterSprite2 = null;
-
-        characterTexture3 = null;
-        characterSprite3 = null;
-
-        characterTexture4 = null;
-        characterSprite4 = null;
+        // Character textures and sprites will be assigned after selection
 
         dragonBallMusic = Gdx.audio.newMusic(Gdx.files.internal("01.Chozetsu_Dynamic!_(TV_Size).mp3"));
 
