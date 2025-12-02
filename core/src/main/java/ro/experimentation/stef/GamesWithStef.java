@@ -10,7 +10,9 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import java.util.ArrayList;
@@ -41,7 +43,9 @@ public class GamesWithStef implements ApplicationListener {
 
     // laser assets
     Texture laserTexture;
+    Texture blueLaserTexture;
     ArrayList<Sprite> lasers;
+    ArrayList<LaserData> enemyLasers;
     float laserCooldown = 0f;
     final float LASER_COOLDOWN_TIME = 0.3f;
     final float LASER_SPEED = 700f;
@@ -57,13 +61,41 @@ public class GamesWithStef implements ApplicationListener {
     final float HEALTH_BAR_WIDTH = 120f;
     final float HEALTH_BAR_HEIGHT = 12f;
     
+    float character1Health;
     float character2Health;
     float character3Health;
     float character4Health;
     
+    boolean character1Alive;
     boolean character2Alive;
     boolean character3Alive;
     boolean character4Alive;
+    
+    // enemy AI movement
+    final float ENEMY_SPEED = 125f;
+    Vector2 character2Velocity;
+    Vector2 character3Velocity;
+    Vector2 character4Velocity;
+    
+    float character2MoveTimer;
+    float character3MoveTimer;
+    float character4MoveTimer;
+    
+    // enemy shooting
+    float character2ShootTimer;
+    float character3ShootTimer;
+    float character4ShootTimer;
+    
+    // Helper class to store laser with velocity
+    private static class LaserData {
+        Sprite sprite;
+        Vector2 velocity;
+        
+        LaserData(Sprite sprite, Vector2 velocity) {
+            this.sprite = sprite;
+            this.velocity = velocity;
+        }
+    }
 
     @Override
     public void create() {
@@ -98,7 +130,15 @@ public class GamesWithStef implements ApplicationListener {
         laserTexture = new Texture(laserPixmap);
         laserPixmap.dispose();
 
+        // create blue laser texture for enemies
+        Pixmap blueLaserPixmap = new Pixmap(40, 5, Pixmap.Format.RGBA8888);
+        blueLaserPixmap.setColor(Color.BLUE);
+        blueLaserPixmap.fill();
+        blueLaserTexture = new Texture(blueLaserPixmap);
+        blueLaserPixmap.dispose();
+
         lasers = new ArrayList<>();
+        enemyLasers = new ArrayList<>();
 
         // end assets initialization
 
@@ -107,12 +147,30 @@ public class GamesWithStef implements ApplicationListener {
 
         // initialize health system
         shapeRenderer = new ShapeRenderer();
+        character1Health = MAX_HEALTH;
         character2Health = MAX_HEALTH;
         character3Health = MAX_HEALTH;
         character4Health = MAX_HEALTH;
+        character1Alive = true;
         character2Alive = true;
         character3Alive = true;
         character4Alive = true;
+        
+        // initialize enemy movement
+        character2Velocity = new Vector2();
+        character3Velocity = new Vector2();
+        character4Velocity = new Vector2();
+        setRandomDirection(character2Velocity);
+        setRandomDirection(character3Velocity);
+        setRandomDirection(character4Velocity);
+        character2MoveTimer = MathUtils.random(1f, 3f);
+        character3MoveTimer = MathUtils.random(1f, 3f);
+        character4MoveTimer = MathUtils.random(1f, 3f);
+        
+        // initialize enemy shooting timers
+        character2ShootTimer = MathUtils.random(1f, 3f);
+        character3ShootTimer = MathUtils.random(1f, 3f);
+        character4ShootTimer = MathUtils.random(1f, 3f);
 
         // init
         dragonBallMusic.setLooping(true);
@@ -145,6 +203,9 @@ public class GamesWithStef implements ApplicationListener {
     public void dispose() {
         if (laserTexture != null) {
             laserTexture.dispose();
+        }
+        if (blueLaserTexture != null) {
+            blueLaserTexture.dispose();
         }
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
@@ -222,6 +283,84 @@ public class GamesWithStef implements ApplicationListener {
                 continue;
             }
         }
+        
+        // update enemy laser positions and check collisions with Broly
+        Iterator<LaserData> enemyIterator = enemyLasers.iterator();
+        while (enemyIterator.hasNext()) {
+            LaserData laserData = enemyIterator.next();
+            laserData.sprite.translate(laserData.velocity.x * delta, laserData.velocity.y * delta);
+            
+            // remove lasers that are off-screen
+            if (laserData.sprite.getX() > width || laserData.sprite.getX() < -100 ||
+                laserData.sprite.getY() > height || laserData.sprite.getY() < -100) {
+                enemyIterator.remove();
+                continue;
+            }
+            
+            // check collision with Broly (character 1)
+            if (character1Alive && laserData.sprite.getBoundingRectangle().overlaps(characterSprite1.getBoundingRectangle())) {
+                character1Health -= DAMAGE_PER_HIT;
+                if (character1Health <= 0) {
+                    character1Alive = false;
+                }
+                enemyIterator.remove();
+            }
+        }
+        
+        // update enemy movement
+        if (character2Alive) {
+            updateEnemyMovement(characterSprite2, character2Velocity, delta);
+            character2MoveTimer -= delta;
+            if (character2MoveTimer <= 0) {
+                setRandomDirection(character2Velocity);
+                character2MoveTimer = MathUtils.random(1f, 3f);
+            }
+        }
+        
+        if (character3Alive) {
+            updateEnemyMovement(characterSprite3, character3Velocity, delta);
+            character3MoveTimer -= delta;
+            if (character3MoveTimer <= 0) {
+                setRandomDirection(character3Velocity);
+                character3MoveTimer = MathUtils.random(1f, 3f);
+            }
+        }
+        
+        if (character4Alive) {
+            updateEnemyMovement(characterSprite4, character4Velocity, delta);
+            character4MoveTimer -= delta;
+            if (character4MoveTimer <= 0) {
+                setRandomDirection(character4Velocity);
+                character4MoveTimer = MathUtils.random(1f, 3f);
+            }
+        }
+        
+        // enemy shooting
+        if (character1Alive) {
+            if (character2Alive) {
+                character2ShootTimer -= delta;
+                if (character2ShootTimer <= 0) {
+                    shootEnemyLaser(characterSprite2);
+                    character2ShootTimer = MathUtils.random(1f, 3f);
+                }
+            }
+            
+            if (character3Alive) {
+                character3ShootTimer -= delta;
+                if (character3ShootTimer <= 0) {
+                    shootEnemyLaser(characterSprite3);
+                    character3ShootTimer = MathUtils.random(1f, 3f);
+                }
+            }
+            
+            if (character4Alive) {
+                character4ShootTimer -= delta;
+                if (character4ShootTimer <= 0) {
+                    shootEnemyLaser(characterSprite4);
+                    character4ShootTimer = MathUtils.random(1f, 3f);
+                }
+            }
+        }
     }
 
     private void draw() {
@@ -231,7 +370,11 @@ public class GamesWithStef implements ApplicationListener {
 
         spriteBatch.begin();
         spriteBatch.draw(backgroundTexture, 0, 0, width, height);
-        characterSprite1.draw(spriteBatch);
+        
+        // only draw Broly if alive
+        if (character1Alive) {
+            characterSprite1.draw(spriteBatch);
+        }
         
         // only draw alive characters
         if (character2Alive) {
@@ -244,9 +387,14 @@ public class GamesWithStef implements ApplicationListener {
             characterSprite4.draw(spriteBatch);
         }
 
-        // draw lasers
+        // draw player lasers
         for (Sprite laser : lasers) {
             laser.draw(spriteBatch);
+        }
+        
+        // draw enemy lasers
+        for (LaserData laserData : enemyLasers) {
+            laserData.sprite.draw(spriteBatch);
         }
 
         spriteBatch.end();
@@ -254,6 +402,11 @@ public class GamesWithStef implements ApplicationListener {
         // draw health bars
         shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        
+        // draw Broly's health bar
+        if (character1Alive) {
+            drawHealthBar(characterSprite1, character1Health);
+        }
         
         if (character2Alive) {
             drawHealthBar(characterSprite2, character2Health);
@@ -295,5 +448,71 @@ public class GamesWithStef implements ApplicationListener {
             shapeRenderer.setColor(Color.GREEN);
             shapeRenderer.rect(barX, barY, HEALTH_BAR_WIDTH * healthPercentage, HEALTH_BAR_HEIGHT);
         }
+    }
+    
+    private void setRandomDirection(Vector2 velocity) {
+        // Generate random direction
+        float angle = MathUtils.random(0f, 360f);
+        velocity.x = MathUtils.cosDeg(angle) * ENEMY_SPEED;
+        velocity.y = MathUtils.sinDeg(angle) * ENEMY_SPEED;
+    }
+    
+    private void updateEnemyMovement(Sprite character, Vector2 velocity, float delta) {
+        // Update position
+        character.translate(velocity.x * delta, velocity.y * delta);
+        
+        // Keep character within screen bounds
+        float x = character.getX();
+        float y = character.getY();
+        float charWidth = character.getWidth() * character.getScaleX();
+        float charHeight = character.getHeight() * character.getScaleY();
+        
+        // Bounce off edges or choose new direction
+        if (x < 0) {
+            character.setX(0);
+            velocity.x = Math.abs(velocity.x);
+        } else if (x + charWidth > width) {
+            character.setX(width - charWidth);
+            velocity.x = -Math.abs(velocity.x);
+        }
+        
+        if (y < 0) {
+            character.setY(0);
+            velocity.y = Math.abs(velocity.y);
+        } else if (y + charHeight > height) {
+            character.setY(height - charHeight);
+            velocity.y = -Math.abs(velocity.y);
+        }
+    }
+    
+    private void shootEnemyLaser(Sprite enemy) {
+        // Calculate eye position for the enemy
+        float eyeX = enemy.getX() - 50 + (enemy.getWidth() * 0.8f);
+        float eyeY = enemy.getY() - 100 + (enemy.getHeight() * 0.8f);
+        
+        // Calculate Broly's center position
+        float brolyX = characterSprite1.getX() + (characterSprite1.getWidth() * characterSprite1.getScaleX() / 2);
+        float brolyY = characterSprite1.getY() + (characterSprite1.getHeight() * characterSprite1.getScaleY() / 2);
+        
+        // Calculate direction from enemy to Broly
+        float dx = brolyX - eyeX;
+        float dy = brolyY - eyeY;
+        
+        // Normalize the direction vector
+        float length = (float) Math.sqrt(dx * dx + dy * dy);
+        if (length > 0) {
+            dx /= length;
+            dy /= length;
+        }
+        
+        // Create laser sprite
+        Sprite laser = new Sprite(blueLaserTexture);
+        laser.setPosition(eyeX, eyeY);
+        
+        // Create velocity vector
+        Vector2 velocity = new Vector2(dx * LASER_SPEED, dy * LASER_SPEED);
+        
+        // Add laser to the list
+        enemyLasers.add(new LaserData(laser, velocity));
     }
 }
