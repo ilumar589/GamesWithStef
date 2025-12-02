@@ -26,6 +26,27 @@ public class GamesWithStef implements ApplicationListener {
     final static int width = 1920;
     final static int height = 1080;
 
+    // Game state management
+    private enum GameState {
+        CHARACTER_SELECTION,
+        GAMEPLAY
+    }
+    private GameState gameState = GameState.CHARACTER_SELECTION;
+
+    // Character selection
+    private static class CharacterInfo {
+        String texturePath;
+        String name;
+        Texture texture;
+
+        CharacterInfo(String texturePath, String name) {
+            this.texturePath = texturePath;
+            this.name = name;
+        }
+    }
+    private CharacterInfo[] characters;
+    private int selectedCharacterIndex = 0;
+
     // assets
     Texture backgroundTexture;
 
@@ -80,6 +101,13 @@ public class GamesWithStef implements ApplicationListener {
     final float HEALTH_BAR_WIDTH = 120f;
     final float HEALTH_BAR_HEIGHT = 12f;
 
+    // Character selection rendering constants
+    final float CHARACTER_SCALE = 0.4f;
+    final int HIGHLIGHT_THICKNESS = 5;
+    final float HIGHLIGHT_PADDING = 10f;
+    final float CHARACTER_Y_OFFSET = 100f;
+    final float CHARACTER_NAME_OFFSET = 30f;
+
     float character1Health;
     float character2Health;
     float character3Health;
@@ -94,6 +122,11 @@ public class GamesWithStef implements ApplicationListener {
     final float ENEMY_SPEED = 125f;
     final float MIN_TIMER_DURATION = 1f;
     final float MAX_TIMER_DURATION = 3f;
+    final float[][] ENEMY_SPAWN_POSITIONS = {
+        {1000f, 400f},  // Enemy 1 position
+        {1000f, 0f},    // Enemy 2 position
+        {700f, 150f}    // Enemy 3 position
+    };
     Vector2 character2Velocity;
     Vector2 character3Velocity;
     Vector2 character4Velocity;
@@ -120,27 +153,21 @@ public class GamesWithStef implements ApplicationListener {
 
     @Override
     public void create() {
+        // Initialize character selection data
+        characters = new CharacterInfo[4];
+        characters[0] = new CharacterInfo("Brolly_renewed.png", "Broly");
+        characters[1] = new CharacterInfo("UltraInstinctGoku.png", "UI Goku");
+        characters[2] = new CharacterInfo("UltraInstinctGoku1.png", "UI Goku 2");
+        characters[3] = new CharacterInfo("VegitoUltraInstinct1.png", "Vegito UI");
+
+        // Load all character textures
+        for (CharacterInfo character : characters) {
+            character.texture = new Texture(character.texturePath);
+        }
+
         backgroundTexture = new Texture("dragonballbackground.jpg");
 
-        characterTexture1 = new Texture("Brolly_renewed.png");
-        characterSprite1 = new Sprite(characterTexture1);
-        characterSprite1.setScale(0.5f);
-        characterSprite1.setPosition(0, 0);
-
-        characterTexture2 = new Texture("UltraInstinctGoku.png");
-        characterSprite2 = new Sprite(characterTexture2);
-        characterSprite2.setScale(0.5f);
-        characterSprite2.setPosition(1000, 400);
-
-        characterTexture3 = new Texture("UltraInstinctGoku1.png");
-        characterSprite3 = new Sprite(characterTexture3);
-        characterSprite3.setScale(0.5f);
-        characterSprite3.setPosition(1000, 0);
-
-        characterTexture4 = new Texture("VegitoUltraInstinct1.png");
-        characterSprite4 = new Sprite(characterTexture4);
-        characterSprite4.setScale(0.5f);
-        characterSprite4.setPosition(700, 150);
+        // Character textures and sprites will be assigned after selection
 
         dragonBallMusic = Gdx.audio.newMusic(Gdx.files.internal("01.Chozetsu_Dynamic!_(TV_Size).mp3"));
 
@@ -204,30 +231,16 @@ public class GamesWithStef implements ApplicationListener {
 
         // initialize health system
         shapeRenderer = new ShapeRenderer();
-        character1Health = 300f;
-        character2Health = MAX_HEALTH;
-        character3Health = MAX_HEALTH;
-        character4Health = MAX_HEALTH;
-        character1Alive = true;
-        character2Alive = true;
-        character3Alive = true;
-        character4Alive = true;
 
-        // initialize enemy movement
-        character2Velocity = new Vector2();
-        character3Velocity = new Vector2();
-        character4Velocity = new Vector2();
-        setRandomDirection(character2Velocity);
-        setRandomDirection(character3Velocity);
-        setRandomDirection(character4Velocity);
-        character2MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
-        character3MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
-        character4MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
-
-        // initialize enemy shooting timers
-        character2ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
-        character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
-        character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        // Don't initialize health and AI until character selection is done
+        character1Health = 0;
+        character2Health = 0;
+        character3Health = 0;
+        character4Health = 0;
+        character1Alive = false;
+        character2Alive = false;
+        character3Alive = false;
+        character4Alive = false;
 
         // initialize pause system
         isPaused = false;
@@ -236,9 +249,7 @@ public class GamesWithStef implements ApplicationListener {
         font.setColor(Color.WHITE);
         glyphLayout = new GlyphLayout();
 
-        // init
-        dragonBallMusic.setLooping(true);
-        dragonBallMusic.play();
+        // Don't start music until character is selected - music will start when gameplay begins
     }
 
     @Override
@@ -248,22 +259,27 @@ public class GamesWithStef implements ApplicationListener {
 
     @Override
     public void render() {
-        // Check for pause toggle
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            isPaused = !isPaused;
-            if (isPaused) {
-                dragonBallMusic.pause();
-            } else {
-                dragonBallMusic.play();
+        if (gameState == GameState.CHARACTER_SELECTION) {
+            handleCharacterSelection();
+            renderCharacterSelection();
+        } else {
+            // Check for pause toggle
+            if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+                isPaused = !isPaused;
+                if (isPaused) {
+                    dragonBallMusic.pause();
+                } else {
+                    dragonBallMusic.play();
+                }
             }
-        }
 
-        // Only process input and logic if not paused
-        if (!isPaused) {
-            input();
-            logic();
+            // Only process input and logic if not paused
+            if (!isPaused) {
+                input();
+                logic();
+            }
+            draw();
         }
-        draw();
     }
 
     @Override
@@ -305,6 +321,181 @@ public class GamesWithStef implements ApplicationListener {
         if (font != null) {
             font.dispose();
         }
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
+        }
+        if (dragonBallMusic != null) {
+            dragonBallMusic.dispose();
+        }
+        if (spriteBatch != null) {
+            spriteBatch.dispose();
+        }
+        // Dispose character textures from the CharacterInfo array
+        // Note: characterTexture1-4 are references to textures in the characters array,
+        // so we only dispose the textures once from the characters array
+        if (characters != null) {
+            for (CharacterInfo character : characters) {
+                if (character.texture != null) {
+                    character.texture.dispose();
+                }
+            }
+        }
+    }
+
+    private void handleCharacterSelection() {
+        // Navigate between characters
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            selectedCharacterIndex--;
+            if (selectedCharacterIndex < 0) {
+                selectedCharacterIndex = characters.length - 1;
+            }
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            selectedCharacterIndex++;
+            if (selectedCharacterIndex >= characters.length) {
+                selectedCharacterIndex = 0;
+            }
+        }
+
+        // Confirm selection
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            startGameWithSelectedCharacter();
+        }
+    }
+
+    private void renderCharacterSelection() {
+        ScreenUtils.clear(Color.BLACK);
+        viewport.apply();
+        spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
+
+        spriteBatch.begin();
+        
+        // Draw background
+        spriteBatch.draw(backgroundTexture, 0, 0, width, height);
+
+        // Draw title text
+        drawTextCentered("SELECT YOUR FIGHTER", height - CHARACTER_Y_OFFSET, 3f);
+
+        // Draw instruction text
+        drawTextCentered("Use LEFT/RIGHT arrows - Press ENTER to confirm", CHARACTER_Y_OFFSET, 2f);
+
+        // Calculate layout for characters (horizontal layout)
+        float characterY = height / 2 - CHARACTER_Y_OFFSET;
+
+        for (int i = 0; i < characters.length; i++) {
+            CharacterInfo character = characters[i];
+            float characterX = calculateCharacterX(i, CHARACTER_SCALE);
+
+            // Draw character sprite
+            spriteBatch.draw(character.texture, characterX, characterY, 
+                           character.texture.getWidth() * CHARACTER_SCALE, 
+                           character.texture.getHeight() * CHARACTER_SCALE);
+
+            // Draw character name
+            font.getData().setScale(2f);
+            glyphLayout.setText(font, character.name);
+            float nameX = characterX + (character.texture.getWidth() * CHARACTER_SCALE / 2) - (glyphLayout.width / 2);
+            float nameY = characterY - CHARACTER_NAME_OFFSET;
+            font.draw(spriteBatch, character.name, nameX, nameY);
+            font.getData().setScale(3f);
+        }
+
+        spriteBatch.end();
+
+        // Draw selection highlight box around selected character
+        shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.YELLOW);
+        
+        CharacterInfo selectedChar = characters[selectedCharacterIndex];
+        float selectedX = calculateCharacterX(selectedCharacterIndex, CHARACTER_SCALE);
+        float boxWidth = selectedChar.texture.getWidth() * CHARACTER_SCALE;
+        float boxHeight = selectedChar.texture.getHeight() * CHARACTER_SCALE;
+        
+        // Draw thick selection box
+        for (int i = 0; i < HIGHLIGHT_THICKNESS; i++) {
+            shapeRenderer.rect(selectedX - HIGHLIGHT_PADDING - i, characterY - HIGHLIGHT_PADDING - i, 
+                             boxWidth + HIGHLIGHT_PADDING * 2 + i * 2, boxHeight + HIGHLIGHT_PADDING * 2 + i * 2);
+        }
+        
+        shapeRenderer.end();
+    }
+
+    private float calculateCharacterX(int index, float scale) {
+        float spacing = width / (characters.length + 1);
+        return spacing * (index + 1) - (characters[index].texture.getWidth() * scale / 2);
+    }
+
+    private void drawTextCentered(String text, float y, float scale) {
+        float originalScale = font.getData().scaleX;
+        font.getData().setScale(scale);
+        glyphLayout.setText(font, text);
+        float x = (width - glyphLayout.width) / 2;
+        font.draw(spriteBatch, text, x, y);
+        font.getData().setScale(originalScale);
+    }
+
+    private void startGameWithSelectedCharacter() {
+        // Assign selected character as player (character 1)
+        characterTexture1 = characters[selectedCharacterIndex].texture;
+        characterSprite1 = new Sprite(characterTexture1);
+        characterSprite1.setScale(0.5f);
+        characterSprite1.setPosition(0, 0);
+
+        // Assign remaining characters as enemies (characters 2, 3, 4)
+        int enemyIndex = 0;
+
+        for (int i = 0; i < characters.length; i++) {
+            if (i != selectedCharacterIndex) {
+                if (enemyIndex == 0) {
+                    characterTexture2 = characters[i].texture;
+                    characterSprite2 = new Sprite(characterTexture2);
+                    characterSprite2.setScale(0.5f);
+                    characterSprite2.setPosition(ENEMY_SPAWN_POSITIONS[0][0], ENEMY_SPAWN_POSITIONS[0][1]);
+                } else if (enemyIndex == 1) {
+                    characterTexture3 = characters[i].texture;
+                    characterSprite3 = new Sprite(characterTexture3);
+                    characterSprite3.setScale(0.5f);
+                    characterSprite3.setPosition(ENEMY_SPAWN_POSITIONS[1][0], ENEMY_SPAWN_POSITIONS[1][1]);
+                } else if (enemyIndex == 2) {
+                    characterTexture4 = characters[i].texture;
+                    characterSprite4 = new Sprite(characterTexture4);
+                    characterSprite4.setScale(0.5f);
+                    characterSprite4.setPosition(ENEMY_SPAWN_POSITIONS[2][0], ENEMY_SPAWN_POSITIONS[2][1]);
+                }
+                enemyIndex++;
+            }
+        }
+
+        // Initialize health
+        character1Health = 300f;
+        character2Health = MAX_HEALTH;
+        character3Health = MAX_HEALTH;
+        character4Health = MAX_HEALTH;
+        character1Alive = true;
+        character2Alive = true;
+        character3Alive = true;
+        character4Alive = true;
+
+        // Initialize enemy movement
+        character2Velocity = new Vector2();
+        character3Velocity = new Vector2();
+        character4Velocity = new Vector2();
+        setRandomDirection(character2Velocity);
+        setRandomDirection(character3Velocity);
+        setRandomDirection(character4Velocity);
+        character2MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character3MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character4MoveTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+
+        // Initialize enemy shooting timers
+        character2ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+        character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
+
+        // Start music and switch to gameplay
+        dragonBallMusic.setLooping(true);
+        dragonBallMusic.play();
+        gameState = GameState.GAMEPLAY;
     }
 
 
