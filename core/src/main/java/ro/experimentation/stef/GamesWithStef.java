@@ -7,6 +7,8 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -53,6 +55,11 @@ public class GamesWithStef implements ApplicationListener {
     // control classes
     SpriteBatch spriteBatch;
     FillViewport viewport;
+
+    // pause system
+    boolean isPaused;
+    BitmapFont font;
+    GlyphLayout glyphLayout;
 
     // health system
     ShapeRenderer shapeRenderer;
@@ -174,6 +181,13 @@ public class GamesWithStef implements ApplicationListener {
         character3ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
         character4ShootTimer = MathUtils.random(MIN_TIMER_DURATION, MAX_TIMER_DURATION);
 
+        // initialize pause system
+        isPaused = false;
+        font = new BitmapFont();
+        font.getData().setScale(3f);
+        font.setColor(Color.WHITE);
+        glyphLayout = new GlyphLayout();
+
         // init
         dragonBallMusic.setLooping(true);
         dragonBallMusic.play();
@@ -186,8 +200,21 @@ public class GamesWithStef implements ApplicationListener {
 
     @Override
     public void render() {
-        input();
-        logic();
+        // Check for pause toggle
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            isPaused = !isPaused;
+            if (isPaused) {
+                dragonBallMusic.pause();
+            } else {
+                dragonBallMusic.play();
+            }
+        }
+
+        // Only process input and logic if not paused
+        if (!isPaused) {
+            input();
+            logic();
+        }
         draw();
     }
 
@@ -211,6 +238,9 @@ public class GamesWithStef implements ApplicationListener {
         }
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
+        }
+        if (font != null) {
+            font.dispose();
         }
     }
 
@@ -428,6 +458,17 @@ public class GamesWithStef implements ApplicationListener {
         }
 
         shapeRenderer.end();
+
+        // Draw pause text if paused
+        if (isPaused) {
+            spriteBatch.begin();
+            String pauseText = "PAUSED";
+            glyphLayout.setText(font, pauseText);
+            float textX = (width - glyphLayout.width) / 2;
+            float textY = height / 2 + glyphLayout.height / 2;
+            font.draw(spriteBatch, pauseText, textX, textY);
+            spriteBatch.end();
+        }
     }
 
     private void shootLaser() {
