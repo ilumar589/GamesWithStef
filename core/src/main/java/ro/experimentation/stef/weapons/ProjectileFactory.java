@@ -121,9 +121,9 @@ public class ProjectileFactory {
             target.getY() + (target.getSprite().getHeight() * target.getSprite().getScaleY() / 2)
         );
         
-        Vector2 direction = vector2Pool.obtain();
-        direction.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
-        direction.nor().scl(GameConfig.LASER_SPEED);
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
+        velocity.nor().scl(GameConfig.LASER_SPEED);
         
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(blueLaserTexture);
@@ -131,11 +131,10 @@ public class ProjectileFactory {
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Projectile projectile = projectilePool.obtain();
-        projectile.init(sprite, direction);
+        projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
         vector2Pool.free(targetCenter);
-        vector2Pool.free(direction);
         
         return projectile;
     }
@@ -201,9 +200,9 @@ public class ProjectileFactory {
             target.getY() + (target.getSprite().getHeight() * target.getSprite().getScaleY() / 2)
         );
         
-        Vector2 direction = vector2Pool.obtain();
-        direction.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
-        direction.nor().scl(GameConfig.LASER_SPEED * 0.7f);
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
+        velocity.nor().scl(GameConfig.LASER_SPEED * 0.7f);
         
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(cyanBeamTexture);
@@ -211,11 +210,10 @@ public class ProjectileFactory {
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Projectile projectile = projectilePool.obtain();
-        projectile.init(sprite, direction);
+        projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
         vector2Pool.free(targetCenter);
-        vector2Pool.free(direction);
         
         return projectile;
     }
