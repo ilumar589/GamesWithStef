@@ -102,7 +102,6 @@ public class ProjectileFactory {
         projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
-        vector2Pool.free(velocity);
         
         return projectile;
     }
@@ -180,8 +179,6 @@ public class ProjectileFactory {
             Projectile projectile = projectilePool.obtain();
             projectile.init(sprite, velocity);
             projectiles.add(projectile);
-            
-            vector2Pool.free(velocity);
         }
         
         vector2Pool.free(eyePos);
@@ -244,8 +241,6 @@ public class ProjectileFactory {
             Projectile projectile = projectilePool.obtain();
             projectile.init(sprite, velocity);
             projectiles.add(projectile);
-            
-            vector2Pool.free(velocity);
         }
         
         vector2Pool.free(eyePos);
@@ -278,8 +273,6 @@ public class ProjectileFactory {
             Projectile projectile = projectilePool.obtain();
             projectile.init(sprite, velocity);
             projectiles.add(projectile);
-            
-            vector2Pool.free(velocity);
         }
         
         vector2Pool.free(eyePos);
@@ -306,7 +299,6 @@ public class ProjectileFactory {
         projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
-        vector2Pool.free(velocity);
         
         return projectile;
     }
