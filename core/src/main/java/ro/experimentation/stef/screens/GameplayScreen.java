@@ -196,8 +196,8 @@ public class GameplayScreen implements Screen {
         }
         
         // Check collisions
-        collisionManager.checkPlayerProjectileCollisions(playerProjectiles, enemies);
-        collisionManager.checkEnemyProjectileCollisions(enemyProjectiles, player);
+        collisionManager.checkPlayerProjectileCollisions(playerProjectiles, enemies, projectileFactory);
+        collisionManager.checkEnemyProjectileCollisions(enemyProjectiles, player, projectileFactory);
     }
     
     /**
@@ -274,14 +274,26 @@ public class GameplayScreen implements Screen {
     
     @Override
     public void dispose() {
+        // Free all remaining projectiles
+        if (projectileFactory != null) {
+            if (playerProjectiles != null) {
+                for (Projectile projectile : playerProjectiles) {
+                    projectileFactory.freeProjectile(projectile);
+                }
+            }
+            if (enemyProjectiles != null) {
+                for (Projectile projectile : enemyProjectiles) {
+                    projectileFactory.freeProjectile(projectile);
+                }
+            }
+            projectileFactory.dispose();
+        }
+        
         if (spriteBatch != null) {
             spriteBatch.dispose();
         }
         if (uiRenderer != null) {
             uiRenderer.dispose();
-        }
-        if (projectileFactory != null) {
-            projectileFactory.dispose();
         }
     }
 }

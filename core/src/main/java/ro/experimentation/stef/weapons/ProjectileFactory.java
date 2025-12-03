@@ -25,6 +25,12 @@ public class ProjectileFactory {
     // Object pool for Vector2 to reduce allocations
     private final Pool<Vector2> vector2Pool;
     
+    // Object pool for Sprite to reduce allocations
+    private final Pool<Sprite> spritePool;
+    
+    // Object pool for Projectile to reduce allocations
+    private final Pool<Projectile> projectilePool;
+    
     /**
      * Creates a new ProjectileFactory with the specified textures.
      */
@@ -39,10 +45,24 @@ public class ProjectileFactory {
         this.magentaLaserTexture = magentaLaser;
         this.orangeLaserTexture = orangeLaser;
         
-        this.vector2Pool = new Pool<Vector2>() {
+        this.vector2Pool = new Pool<Vector2>(100, 500) {
             @Override
             protected Vector2 newObject() {
                 return new Vector2();
+            }
+        };
+        
+        this.spritePool = new Pool<Sprite>(100, 500) {
+            @Override
+            protected Sprite newObject() {
+                return new Sprite();
+            }
+        };
+        
+        this.projectilePool = new Pool<Projectile>(100, 500) {
+            @Override
+            protected Projectile newObject() {
+                return new Projectile() {};
             }
         };
     }
@@ -69,12 +89,22 @@ public class ProjectileFactory {
      */
     public Projectile createPlayerLaser(Character shooter) {
         Vector2 eyePos = calculateEyePosition(shooter);
-        Sprite sprite = new Sprite(redLaserTexture);
+        
+        Sprite sprite = spritePool.obtain();
+        sprite.setTexture(redLaserTexture);
+        sprite.setRegion(redLaserTexture);
+        sprite.setSize(redLaserTexture.getWidth(), redLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
+        
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(GameConfig.LASER_SPEED, 0);
+        
+        Projectile projectile = projectilePool.obtain();
+        projectile.init(sprite, velocity);
+        
         vector2Pool.free(eyePos);
         
-        Vector2 velocity = new Vector2(GameConfig.LASER_SPEED, 0);
-        return new Projectile(sprite, velocity) {};
+        return projectile;
     }
     
     /**
@@ -92,18 +122,21 @@ public class ProjectileFactory {
             target.getY() + (target.getSprite().getHeight() * target.getSprite().getScaleY() / 2)
         );
         
-        Vector2 direction = vector2Pool.obtain();
-        direction.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
-        direction.nor().scl(GameConfig.LASER_SPEED);
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
+        velocity.nor().scl(GameConfig.LASER_SPEED);
         
-        Sprite sprite = new Sprite(blueLaserTexture);
+        Sprite sprite = spritePool.obtain();
+        sprite.setTexture(blueLaserTexture);
+        sprite.setRegion(blueLaserTexture);
+        sprite.setSize(blueLaserTexture.getWidth(), blueLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
-        Projectile projectile = new Projectile(sprite, direction) {};
+        Projectile projectile = projectilePool.obtain();
+        projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
         vector2Pool.free(targetCenter);
-        vector2Pool.free(direction);
         
         return projectile;
     }
@@ -139,11 +172,15 @@ public class ProjectileFactory {
             velocity.y = MathUtils.sinDeg(angle);
             velocity.scl(GameConfig.LASER_SPEED);
             
-            Sprite sprite = new Sprite(yellowLaserTexture);
+            Sprite sprite = spritePool.obtain();
+            sprite.setTexture(yellowLaserTexture);
+            sprite.setRegion(yellowLaserTexture);
+            sprite.setSize(yellowLaserTexture.getWidth(), yellowLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y);
             
-            projectiles.add(new Projectile(sprite, velocity) {});
-            vector2Pool.free(velocity);
+            Projectile projectile = projectilePool.obtain();
+            projectile.init(sprite, velocity);
+            projectiles.add(projectile);
         }
         
         vector2Pool.free(eyePos);
@@ -166,18 +203,21 @@ public class ProjectileFactory {
             target.getY() + (target.getSprite().getHeight() * target.getSprite().getScaleY() / 2)
         );
         
-        Vector2 direction = vector2Pool.obtain();
-        direction.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
-        direction.nor().scl(GameConfig.LASER_SPEED * 0.7f);
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(targetCenter.x - eyePos.x, targetCenter.y - eyePos.y);
+        velocity.nor().scl(GameConfig.LASER_SPEED * 0.7f);
         
-        Sprite sprite = new Sprite(cyanBeamTexture);
+        Sprite sprite = spritePool.obtain();
+        sprite.setTexture(cyanBeamTexture);
+        sprite.setRegion(cyanBeamTexture);
+        sprite.setSize(cyanBeamTexture.getWidth(), cyanBeamTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
-        Projectile projectile = new Projectile(sprite, direction) {};
+        Projectile projectile = projectilePool.obtain();
+        projectile.init(sprite, velocity);
         
         vector2Pool.free(eyePos);
         vector2Pool.free(targetCenter);
-        vector2Pool.free(direction);
         
         return projectile;
     }
@@ -192,10 +232,18 @@ public class ProjectileFactory {
         Vector2 eyePos = calculateEyePosition(shooter);
         
         for (int i = -1; i <= 1; i++) {
-            Sprite sprite = new Sprite(greenLaserTexture);
+            Sprite sprite = spritePool.obtain();
+            sprite.setTexture(greenLaserTexture);
+            sprite.setRegion(greenLaserTexture);
+            sprite.setSize(greenLaserTexture.getWidth(), greenLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y + (i * 15));
-            Vector2 velocity = new Vector2(GameConfig.LASER_SPEED, 0);
-            projectiles.add(new Projectile(sprite, velocity) {});
+            
+            Vector2 velocity = vector2Pool.obtain();
+            velocity.set(GameConfig.LASER_SPEED, 0);
+            
+            Projectile projectile = projectilePool.obtain();
+            projectile.init(sprite, velocity);
+            projectiles.add(projectile);
         }
         
         vector2Pool.free(eyePos);
@@ -220,11 +268,15 @@ public class ProjectileFactory {
             velocity.y = MathUtils.sinDeg(angle);
             velocity.scl(GameConfig.LASER_SPEED);
             
-            Sprite sprite = new Sprite(magentaLaserTexture);
+            Sprite sprite = spritePool.obtain();
+            sprite.setTexture(magentaLaserTexture);
+            sprite.setRegion(magentaLaserTexture);
+            sprite.setSize(magentaLaserTexture.getWidth(), magentaLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y);
             
-            projectiles.add(new Projectile(sprite, velocity) {});
-            vector2Pool.free(velocity);
+            Projectile projectile = projectilePool.obtain();
+            projectile.init(sprite, velocity);
+            projectiles.add(projectile);
         }
         
         vector2Pool.free(eyePos);
@@ -238,18 +290,53 @@ public class ProjectileFactory {
      */
     public Projectile createMegaBeam(Character shooter) {
         Vector2 eyePos = calculateEyePosition(shooter);
-        Sprite sprite = new Sprite(orangeLaserTexture);
+        
+        Sprite sprite = spritePool.obtain();
+        sprite.setTexture(orangeLaserTexture);
+        sprite.setRegion(orangeLaserTexture);
+        sprite.setSize(orangeLaserTexture.getWidth(), orangeLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
+        
+        Vector2 velocity = vector2Pool.obtain();
+        velocity.set(GameConfig.LASER_SPEED, 0);
+        
+        Projectile projectile = projectilePool.obtain();
+        projectile.init(sprite, velocity);
+        
         vector2Pool.free(eyePos);
         
-        Vector2 velocity = new Vector2(GameConfig.LASER_SPEED, 0);
-        return new Projectile(sprite, velocity) {};
+        return projectile;
     }
     
     /**
-     * Clears the vector pool.
+     * Frees a projectile and its resources back to the pools.
+     *
+     * @param projectile The projectile to free
+     */
+    public void freeProjectile(Projectile projectile) {
+        if (projectile != null) {
+            // Return sprite to pool
+            if (projectile.getSprite() != null) {
+                spritePool.free(projectile.getSprite());
+            }
+            
+            // Return velocity to pool
+            if (projectile.getVelocity() != null) {
+                vector2Pool.free(projectile.getVelocity());
+            }
+            
+            // Reset and return projectile to pool
+            projectile.reset();
+            projectilePool.free(projectile);
+        }
+    }
+    
+    /**
+     * Clears all pools.
      */
     public void dispose() {
         vector2Pool.clear();
+        spritePool.clear();
+        projectilePool.clear();
     }
 }

@@ -7,6 +7,7 @@ import ro.experimentation.stef.entities.Character;
 import ro.experimentation.stef.entities.Enemy;
 import ro.experimentation.stef.entities.Player;
 import ro.experimentation.stef.weapons.Projectile;
+import ro.experimentation.stef.weapons.ProjectileFactory;
 
 /**
  * Manages all collision detection in the game.
@@ -31,8 +32,9 @@ public class CollisionManager {
      *
      * @param projectiles Array of player projectiles
      * @param enemies Array of enemy characters
+     * @param projectileFactory The projectile factory for freeing projectiles
      */
-    public void checkPlayerProjectileCollisions(Array<Projectile> projectiles, Array<Enemy> enemies) {
+    public void checkPlayerProjectileCollisions(Array<Projectile> projectiles, Array<Enemy> enemies, ProjectileFactory projectileFactory) {
         for (int i = projectiles.size - 1; i >= 0; i--) {
             Projectile projectile = projectiles.get(i);
             if (!projectile.isActive()) {
@@ -57,6 +59,7 @@ public class CollisionManager {
             }
             
             if (hit || projectile.isOffScreen(GameConfig.SCREEN_WIDTH, GameConfig.SCREEN_HEIGHT)) {
+                projectileFactory.freeProjectile(projectile);
                 projectiles.removeIndex(i);
             }
         }
@@ -68,8 +71,9 @@ public class CollisionManager {
      *
      * @param projectiles Array of enemy projectiles
      * @param player The player character
+     * @param projectileFactory The projectile factory for freeing projectiles
      */
-    public void checkEnemyProjectileCollisions(Array<Projectile> projectiles, Player player) {
+    public void checkEnemyProjectileCollisions(Array<Projectile> projectiles, Player player, ProjectileFactory projectileFactory) {
         if (!player.isAlive()) {
             return;
         }
@@ -87,8 +91,10 @@ public class CollisionManager {
             if (projectileRect.overlaps(characterRect)) {
                 player.takeDamage(GameConfig.DAMAGE_PER_HIT);
                 projectile.deactivate();
+                projectileFactory.freeProjectile(projectile);
                 projectiles.removeIndex(i);
             } else if (projectile.isOffScreen(GameConfig.SCREEN_WIDTH, GameConfig.SCREEN_HEIGHT)) {
+                projectileFactory.freeProjectile(projectile);
                 projectiles.removeIndex(i);
             }
         }
