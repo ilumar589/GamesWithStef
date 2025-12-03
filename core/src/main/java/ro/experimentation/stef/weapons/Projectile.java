@@ -15,14 +15,22 @@ public abstract class Projectile {
     protected boolean active;
     
     /**
-     * Creates a new projectile with a sprite and velocity.
+     * Creates a new projectile (for pooling).
+     */
+    public Projectile() {
+        this.velocity = new Vector2();
+        this.active = false;
+    }
+    
+    /**
+     * Initializes the projectile with a sprite and velocity (for pooling).
      *
      * @param sprite The sprite to use for rendering
      * @param velocity The velocity vector
      */
-    public Projectile(Sprite sprite, Vector2 velocity) {
+    public void init(Sprite sprite, Vector2 velocity) {
         this.sprite = sprite;
-        this.velocity = new Vector2(velocity);
+        this.velocity.set(velocity);
         this.active = true;
     }
     
@@ -108,7 +116,8 @@ public abstract class Projectile {
      * Resets the projectile for object pooling.
      */
     public void reset() {
-        this.active = false;
+        this.sprite = null;
         this.velocity.set(0, 0);
+        this.active = false;
     }
 }
