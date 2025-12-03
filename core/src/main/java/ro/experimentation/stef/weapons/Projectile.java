@@ -51,7 +51,7 @@ public abstract class Projectile {
      * @param batch The SpriteBatch to render with
      */
     public void render(SpriteBatch batch) {
-        if (active) {
+        if (active && sprite != null) {
             sprite.draw(batch);
         }
     }
@@ -62,6 +62,9 @@ public abstract class Projectile {
      * @return The bounding rectangle
      */
     public Rectangle getBoundingRectangle() {
+        if (sprite == null) {
+            return new Rectangle();
+        }
         return sprite.getBoundingRectangle();
     }
     
@@ -73,6 +76,9 @@ public abstract class Projectile {
      * @return true if projectile is off-screen
      */
     public boolean isOffScreen(int screenWidth, int screenHeight) {
+        if (sprite == null) {
+            return true;
+        }
         float x = sprite.getX();
         float y = sprite.getY();
         return x > screenWidth || x < -100 || y > screenHeight || y < -100;
