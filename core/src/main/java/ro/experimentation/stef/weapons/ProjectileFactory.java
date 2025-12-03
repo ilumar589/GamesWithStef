@@ -45,7 +45,7 @@ public class ProjectileFactory {
         this.magentaLaserTexture = magentaLaser;
         this.orangeLaserTexture = orangeLaser;
         
-        this.vector2Pool = new Pool<Vector2>() {
+        this.vector2Pool = new Pool<Vector2>(100, 500) {
             @Override
             protected Vector2 newObject() {
                 return new Vector2();
