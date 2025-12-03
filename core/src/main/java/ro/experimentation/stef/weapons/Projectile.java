@@ -18,7 +18,7 @@ public abstract class Projectile {
      * Creates a new projectile (for pooling).
      */
     public Projectile() {
-        this.velocity = new Vector2();
+        this.velocity = null;
         this.active = false;
     }
     
@@ -26,11 +26,11 @@ public abstract class Projectile {
      * Initializes the projectile with a sprite and velocity (for pooling).
      *
      * @param sprite The sprite to use for rendering
-     * @param velocity The velocity vector
+     * @param velocity The velocity vector from the pool
      */
     public void init(Sprite sprite, Vector2 velocity) {
         this.sprite = sprite;
-        this.velocity.set(velocity);
+        this.velocity = velocity;
         this.active = true;
     }
     
@@ -40,7 +40,7 @@ public abstract class Projectile {
      * @param delta Time elapsed since last frame in seconds
      */
     public void update(float delta) {
-        if (active) {
+        if (active && velocity != null) {
             sprite.translate(velocity.x * delta, velocity.y * delta);
         }
     }
@@ -117,7 +117,7 @@ public abstract class Projectile {
      */
     public void reset() {
         this.sprite = null;
-        this.velocity.set(0, 0);
+        this.velocity = null;
         this.active = false;
     }
 }
