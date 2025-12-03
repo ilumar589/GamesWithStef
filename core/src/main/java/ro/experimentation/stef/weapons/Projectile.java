@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Vector2;
  * Provides common functionality for movement, rendering, and collision detection.
  */
 public abstract class Projectile {
+    private static final Rectangle EMPTY_RECTANGLE = new Rectangle();
+    
     protected Sprite sprite;
     protected Vector2 velocity;
     protected boolean active;
@@ -63,7 +65,7 @@ public abstract class Projectile {
      */
     public Rectangle getBoundingRectangle() {
         if (sprite == null) {
-            return new Rectangle();
+            return EMPTY_RECTANGLE;
         }
         return sprite.getBoundingRectangle();
     }
