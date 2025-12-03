@@ -93,6 +93,7 @@ public class ProjectileFactory {
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(redLaserTexture);
         sprite.setRegion(redLaserTexture);
+        sprite.setSize(redLaserTexture.getWidth(), redLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Vector2 velocity = vector2Pool.obtain();
@@ -128,6 +129,7 @@ public class ProjectileFactory {
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(blueLaserTexture);
         sprite.setRegion(blueLaserTexture);
+        sprite.setSize(blueLaserTexture.getWidth(), blueLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Projectile projectile = projectilePool.obtain();
@@ -173,6 +175,7 @@ public class ProjectileFactory {
             Sprite sprite = spritePool.obtain();
             sprite.setTexture(yellowLaserTexture);
             sprite.setRegion(yellowLaserTexture);
+            sprite.setSize(yellowLaserTexture.getWidth(), yellowLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y);
             
             Projectile projectile = projectilePool.obtain();
@@ -207,6 +210,7 @@ public class ProjectileFactory {
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(cyanBeamTexture);
         sprite.setRegion(cyanBeamTexture);
+        sprite.setSize(cyanBeamTexture.getWidth(), cyanBeamTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Projectile projectile = projectilePool.obtain();
@@ -231,6 +235,7 @@ public class ProjectileFactory {
             Sprite sprite = spritePool.obtain();
             sprite.setTexture(greenLaserTexture);
             sprite.setRegion(greenLaserTexture);
+            sprite.setSize(greenLaserTexture.getWidth(), greenLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y + (i * 15));
             
             Vector2 velocity = vector2Pool.obtain();
@@ -266,6 +271,7 @@ public class ProjectileFactory {
             Sprite sprite = spritePool.obtain();
             sprite.setTexture(magentaLaserTexture);
             sprite.setRegion(magentaLaserTexture);
+            sprite.setSize(magentaLaserTexture.getWidth(), magentaLaserTexture.getHeight());
             sprite.setPosition(eyePos.x, eyePos.y);
             
             Projectile projectile = projectilePool.obtain();
@@ -288,6 +294,7 @@ public class ProjectileFactory {
         Sprite sprite = spritePool.obtain();
         sprite.setTexture(orangeLaserTexture);
         sprite.setRegion(orangeLaserTexture);
+        sprite.setSize(orangeLaserTexture.getWidth(), orangeLaserTexture.getHeight());
         sprite.setPosition(eyePos.x, eyePos.y);
         
         Vector2 velocity = vector2Pool.obtain();
